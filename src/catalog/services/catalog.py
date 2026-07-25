@@ -114,7 +114,7 @@ class CatalogService:
             if observed.tzinfo is None:
                 observed = observed.replace(tzinfo=UTC)
             age = max(0.0, (datetime.now(UTC) - observed).total_seconds())
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return SourceProjection("unavailable", None, None, 0), None
 
         last_error = health.get("last_error_at")
