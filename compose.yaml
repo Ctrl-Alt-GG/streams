@@ -1,23 +1,10 @@
-name: ${COMPOSE_PROJECT_NAME:-streams}
-
-x-app: &app
-  env_file: .env
-  restart: unless-stopped
-  read_only: true
-  tmpfs:
-    - /tmp:uid=10001,gid=10001,mode=1777
-  security_opt:
-    - no-new-privileges:true
-  cap_drop:
-    - ALL
-
 services:
   postgres:
     image: postgres:18
     restart: unless-stopped
     env_file: .env
     volumes:
-      - ${DATA_DIR:-./data}/postgres:/var/lib/postgresql
+      - ./data/postgres:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready --username=\"$$POSTGRES_USER\" --dbname=\"$$POSTGRES_DB\""]
       interval: 10s
@@ -37,11 +24,11 @@ services:
       retries: 5
 
   rabbitmq:
-    image: rabbitmq:4.3.4-management
+    image: rabbitmq:4.3.4
     restart: unless-stopped
     env_file: .env
     volumes:
-      - ${DATA_DIR:-./data}/rabbitmq:/var/lib/rabbitmq
+      - ./data/rabbitmq:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
@@ -55,10 +42,10 @@ services:
     env_file: .env
     command: ["server", "/data", "--console-address", ":9001"]
     volumes:
-      - ${DATA_DIR:-./data}/minio:/data
+      - ./data/minio:/data
     ports:
-      - "127.0.0.1:${MINIO_PORT:-9000}:9000"
-      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     healthcheck:
       test: ["CMD", "/usr/bin/curl", "--fail", "--silent", "http://127.0.0.1:9000/minio/health/live"]
       interval: 10s
@@ -78,9 +65,16 @@ services:
         condition: service_healthy
 
   setup:
-    <<: *app
-    image: ghcr.io/${GHCR_NAMESPACE:?set GHCR_NAMESPACE}/streams-web:${APP_IMAGE_TAG:?set APP_IMAGE_TAG}
+    image: ghcr.io/ctrl-alt-gg/streams-web:${APP_IMAGE_TAG:?set APP_IMAGE_TAG}
+    env_file: .env
     restart: "no"
+    read_only: true
+    tmpfs:
+      - /tmp:uid=10001,gid=10001,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     command: ["/bin/sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput"]
     depends_on:
       postgres:
@@ -89,10 +83,18 @@ services:
         condition: service_completed_successfully
 
   web:
-    <<: *app
-    image: ghcr.io/${GHCR_NAMESPACE:?set GHCR_NAMESPACE}/streams-web:${APP_IMAGE_TAG:?set APP_IMAGE_TAG}
+    image: ghcr.io/ctrl-alt-gg/streams-web:${APP_IMAGE_TAG:?set APP_IMAGE_TAG}
+    env_file: .env
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:uid=10001,gid=10001,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     ports:
-      - "127.0.0.1:${WEB_PORT:-8000}:8000"
+      - "127.0.0.1:8000:8000"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/?format=json', timeout=2)"]
       interval: 10s
@@ -104,10 +106,22 @@ services:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
+      worker:
+        condition: service_started
+      beat:
+        condition: service_started
 
   worker:
-    <<: *app
-    image: ghcr.io/${GHCR_NAMESPACE:?set GHCR_NAMESPACE}/streams-worker:${APP_IMAGE_TAG:?set APP_IMAGE_TAG}
+    image: ghcr.io/ctrl-alt-gg/streams-worker:${APP_IMAGE_TAG:?set APP_IMAGE_TAG}
+    env_file: .env
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:uid=10001,gid=10001,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     stop_grace_period: 30s
     depends_on:
       setup:
@@ -118,8 +132,16 @@ services:
         condition: service_healthy
 
   beat:
-    <<: *app
-    image: ghcr.io/${GHCR_NAMESPACE:?set GHCR_NAMESPACE}/streams-beat:${APP_IMAGE_TAG:?set APP_IMAGE_TAG}
+    image: ghcr.io/ctrl-alt-gg/streams-beat:${APP_IMAGE_TAG:?set APP_IMAGE_TAG}
+    env_file: .env
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:uid=10001,gid=10001,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     depends_on:
       setup:
         condition: service_completed_successfully

@@ -36,6 +36,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -78,7 +79,12 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "hu"
+LANGUAGES = [
+    ("hu", "Magyar"),
+    ("en", "English"),
+]
+LOCALE_PATHS = [BASE_DIR / "src" / "locale"]
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
@@ -107,7 +113,7 @@ MEDIAMTX_HLS_PUBLIC_BASE_URL = env(
     "MEDIAMTX_HLS_PUBLIC_BASE_URL", default="https://streams.invalid/hls/"
 )
 MEDIAMTX_RTMP_PUBLIC_BASE_URL = env(
-    "MEDIAMTX_RTMP_PUBLIC_BASE_URL", default="rtmps://streams.invalid/live"
+    "MEDIAMTX_RTMP_PUBLIC_BASE_URL", default="rtmps://streams.invalid"
 )
 MEDIAMTX_RECONCILE_INTERVAL_SECONDS = 10
 MEDIAMTX_CACHE_TTL_SECONDS = 15
@@ -125,12 +131,12 @@ REST_FRAMEWORK = {
 }
 SPECTACULAR_SETTINGS = {
     "TITLE": "Streams API",
-    "DESCRIPTION": "Read-only MediaMTX catalog with staff-managed display names.",
+    "DESCRIPTION": "Read-only stream listing with staff-managed display names.",
     "VERSION": "1.0.0",
     "OAS_VERSION": "3.1.0",
     "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAdminUser"],
     "SWAGGER_UI_DIST": "SIDECAR",
-    "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
+    "SWAGGER_UI_FAVICON_HREF": f"{STATIC_URL.rstrip('/')}/catalog/favicon.svg",
 }
 
 
@@ -178,9 +184,13 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TIMEZONE = "UTC"
 CELERY_ENABLE_UTC = True
+CELERY_BROKER_TRANSPORT_OPTIONS = {"confirm_publish": True}
 CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_CREATE_MISSING_QUEUE_TYPE = "quorum"
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_WORKER_DETECT_QUORUM_QUEUES = True
+CELERY_WORKER_ENABLE_REMOTE_CONTROL = False
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
-CELERY_TASK_ROUTES = {"catalog.tasks.refresh_mediamtx_snapshot": {"queue": "mediamtx"}}
+CELERY_TASK_ROUTES = {"catalog.tasks.refresh_mediamtx_snapshot": {"queue": "mediamtx-quorum"}}
 CELERY_TASK_SOFT_TIME_LIMIT = 7
 CELERY_TASK_TIME_LIMIT = 9

@@ -1,42 +1,50 @@
-{% load static %}
+{% load i18n static %}
+{% get_current_language as LANGUAGE_CODE %}
+{% get_available_languages as LANGUAGES %}
+{% get_language_info_list for LANGUAGES as languages %}
 <!doctype html>
-<html lang="en" class="min-h-full">
+<html lang="{{ LANGUAGE_CODE }}" class="min-h-full">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#160505">
     <title>{% block title %}Streams{% endblock %}</title>
+    <link rel="icon" href="{% static 'catalog/favicon.svg' %}" type="image/svg+xml">
     <link rel="stylesheet" href="{% static 'catalog/css/app.css' %}">
     {% block head %}{% endblock %}
   </head>
-  <body class="min-h-screen text-zinc-900 antialiased dark:text-zinc-100">
-    <div class="h-px bg-brand-500" aria-hidden="true"></div>
-    <header class="bg-gradient-to-r from-brand-900 via-[#761027] to-ink-950 text-white shadow-sm">
-      <div class="page-width flex min-h-16 items-center justify-between gap-6 py-3">
-        <a href="{% url 'catalog:home' %}" class="inline-flex items-center gap-3 font-semibold no-underline">
-          <span class="grid size-8 place-items-center rounded-md border border-white/25 bg-white/10 text-sm font-black" aria-hidden="true">S</span>
-          <span class="text-lg">streams</span>
+  <body class="min-h-screen bg-surface text-on-surface antialiased">
+    <div class="h-1 bg-brand-600" aria-hidden="true"></div>
+    <header class="border-b border-white/20 bg-gradient-to-br from-brand-800 to-brand-700 pb-3 pt-5 text-white shadow-sm dark:from-[#130404] dark:to-[#1e0606]">
+      <div class="page-width">
+        <a href="{% url 'catalog:home' %}" class="flex items-center justify-center gap-3 no-underline transition-opacity hover:opacity-85" aria-label="{% translate 'Ctrl-Alt-GG Streams home' %}">
+          <img src="{% static 'catalog/ctrl-alt-gg-mark.svg' %}" alt="" class="h-8 w-auto sm:h-10" width="54" height="40">
+          <span class="text-lg font-bold text-white sm:text-xl">Ctrl-Alt-GG Streams</span>
         </a>
-        <nav aria-label="Primary" class="flex items-center gap-2 text-sm font-medium">
-          <a href="{% url 'catalog:home' %}" class="rounded-md px-3 py-2 hover:bg-white/10">Directory</a>
-          <a href="{% url 'catalog:tutorial' %}" class="rounded-md px-3 py-2 hover:bg-white/10">Publish</a>
-          {% if request.user.is_staff %}
-            <a href="{% url 'admin:index' %}" class="rounded-md px-3 py-2 hover:bg-white/10">Admin</a>
-          {% endif %}
-        </nav>
+        <div class="relative mt-4 flex flex-col items-center gap-2 sm:min-h-9 sm:justify-center">
+          <nav aria-label="{% translate 'Primary navigation' %}" class="flex flex-wrap items-center justify-center text-sm tracking-[0.04em]">
+            <a href="{% url 'catalog:home' %}" {% if request.resolver_match.url_name == "home" %}aria-current="page"{% endif %} class="block rounded-md px-3 py-2 font-normal text-white/75 no-underline transition-colors hover:bg-white/15 hover:text-white aria-[current=page]:bg-white/20 aria-[current=page]:font-semibold aria-[current=page]:text-white">{% translate "Watch" %}</a>
+            <a href="{% url 'catalog:tutorial' %}" {% if request.resolver_match.url_name == "tutorial" %}aria-current="page"{% endif %} class="block rounded-md px-3 py-2 font-normal text-white/75 no-underline transition-colors hover:bg-white/15 hover:text-white aria-[current=page]:bg-white/20 aria-[current=page]:font-semibold aria-[current=page]:text-white">{% translate "Publish" %}</a>
+            {% if request.user.is_staff %}
+              <a href="{% url 'admin:index' %}" class="block rounded-md px-3 py-2 font-normal text-white/75 no-underline transition-colors hover:bg-white/15 hover:text-white">{% translate "Admin" %}</a>
+            {% endif %}
+          </nav>
+          <form action="{% url 'set_language' %}" method="post" class="flex items-center gap-1 text-xs tracking-wide sm:absolute sm:right-0" aria-label="{% translate 'Language' %}">
+            {% csrf_token %}
+            <input name="next" type="hidden" value="{{ request.get_full_path }}">
+            {% for language in languages %}
+              {% if not forloop.first %}<span class="text-white/30" aria-hidden="true">·</span>{% endif %}
+              <button type="submit" name="language" value="{{ language.code }}" lang="{{ language.code }}" {% if language.code == LANGUAGE_CODE %}aria-current="page"{% endif %} class="cursor-pointer border-0 bg-transparent rounded px-1.5 py-1 text-white/55 transition-colors hover:text-white aria-[current=page]:font-bold aria-[current=page]:text-white">{{ language.name_local }}</button>
+            {% endfor %}
+          </form>
+        </div>
       </div>
     </header>
 
-    <main id="main-content" class="page-width py-10 sm:py-14">
+    <main id="main-content" class="page-width py-8 sm:py-10">
       {% block content %}{% endblock %}
     </main>
-
-    <footer class="mt-16 border-t border-zinc-200 bg-zinc-950 text-zinc-300 dark:border-zinc-800">
-      <div class="page-width flex flex-col gap-2 py-8 text-sm sm:flex-row sm:items-center sm:justify-between">
-        <p class="font-semibold text-white">streams</p>
-        <p>Private MediaMTX directory</p>
-      </div>
-    </footer>
     {% block scripts %}{% endblock %}
   </body>
 </html>

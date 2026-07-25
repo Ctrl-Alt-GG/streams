@@ -4,33 +4,27 @@ from django.conf import settings
 
 
 @dataclass(frozen=True, slots=True)
-class PublishingGuide:
+class PublishingConfiguration:
     server_url: str
     authentication_required: bool
-    obs_steps: tuple[str, ...]
+    stream_key_prefix: str
+    stream_key_example: str
     ffmpeg_template: str
-    safety_notes: tuple[str, ...]
 
     def as_dict(self) -> dict:
         return asdict(self)
 
 
-def get_publishing_guide() -> PublishingGuide:
-    return PublishingGuide(
-        server_url=settings.MEDIAMTX_RTMP_PUBLIC_BASE_URL,
+def get_publishing_configuration() -> PublishingConfiguration:
+    server_url = settings.MEDIAMTX_RTMP_PUBLIC_BASE_URL.rstrip("/")
+    stream_key_prefix = "live/"
+    stream_key_example = f"{stream_key_prefix}SOMETHING"
+    return PublishingConfiguration(
+        server_url=server_url,
         authentication_required=True,
-        obs_steps=(
-            "Open Settings, then select Stream.",
-            "Choose Custom as the service and enter the server URL shown here.",
-            "Enter the assigned stream path as the stream key.",
-            "Enter publishing credentials when prompted, then start streaming.",
-        ),
+        stream_key_prefix=stream_key_prefix,
+        stream_key_example=stream_key_example,
         ffmpeg_template=(
-            'ffmpeg -re -i INPUT -c:v libx264 -c:a aac -f flv "RTMPS_SERVER/STREAM_PATH"'
-        ),
-        safety_notes=(
-            "Publishing credentials are assigned separately and are never displayed here.",
-            "Treat the stream path and credentials as private.",
-            "Use the TLS-protected RTMPS endpoint only.",
+            f'ffmpeg -re -i INPUT -c:v libx264 -c:a aac -f flv "{server_url}/{stream_key_example}"'
         ),
     )

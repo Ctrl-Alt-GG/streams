@@ -5,7 +5,7 @@ from urllib.parse import urljoin
 from django.conf import settings
 from django.urls import reverse
 
-from catalog.models import Stream
+from catalog.models import BlockedPath, Stream
 from catalog.services.cache import get_poll_health, get_snapshot
 from catalog.services.playback import build_hls_embed_url, build_hls_url
 
@@ -24,6 +24,7 @@ class StreamProjection:
     id: str
     path_name: str
     display_name: str
+    description: str
     effective_name: str
     status: str
     available: bool | None
@@ -65,7 +66,13 @@ class CatalogService:
         snapshot = get_snapshot()
         health = get_poll_health() or {}
         source, usable_snapshot = self._source(snapshot, health)
-        records = tuple(Stream.objects.all())
+        blocked_paths = BlockedPath.objects.values_list("path_name", flat=True)
+        discovered_paths = (snapshot or {}).get("paths", {})
+        records = tuple(
+            Stream.objects.filter(path_name__in=discovered_paths).exclude(
+                path_name__in=blocked_paths
+            )
+        )
         streams = tuple(self._project(record, usable_snapshot, source) for record in records)
         return CatalogProjection(source=source, streams=tuple(sorted(streams, key=self._sort_key)))
 
@@ -134,6 +141,7 @@ class CatalogService:
             id=str(record.id),
             path_name=record.path_name,
             display_name=record.display_name,
+            description=record.description,
             effective_name=record.effective_name,
             status=status,
             available=available,

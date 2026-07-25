@@ -8,7 +8,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 from django.db import transaction
 from pydantic import ValidationError
 
-from catalog.models import Stream
+from catalog.models import BlockedPath, Stream
 from catalog.services.cache import (
     reconcile_lock,
     record_attempt,
@@ -79,10 +79,15 @@ def refresh_mediamtx_snapshot(self) -> str:
             active_by_name = {path.name: path for path in active_paths}
             names = set(active_by_name)
             names.update(path.name for path in configured_paths if not path.name.startswith("~"))
+            names.difference_update(BlockedPath.objects.values_list("path_name", flat=True))
             with transaction.atomic():
                 Stream.objects.bulk_create(
                     [Stream(path_name=name) for name in sorted(names)], ignore_conflicts=True
                 )
+                Stream.objects.exclude(path_name__in=names).filter(
+                    display_name="",
+                    description="",
+                ).delete()
 
             observed_at = datetime.now(UTC).isoformat()
             paths = {}

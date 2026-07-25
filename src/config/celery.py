@@ -14,6 +14,6 @@ app.conf.beat_schedule = {
     "refresh-mediamtx-snapshot": {
         "task": "catalog.tasks.refresh_mediamtx_snapshot",
         "schedule": schedule(run_every=settings.MEDIAMTX_RECONCILE_INTERVAL_SECONDS),
-        "options": {"expires": 9.0, "queue": "mediamtx"},
+        "options": {"expires": 9.0, "queue": "mediamtx-quorum"},
     }
 }

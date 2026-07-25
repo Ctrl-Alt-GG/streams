@@ -1,17 +1,18 @@
 {% extends "catalog/base.html" %}
+{% load catalog_markdown i18n %}
 
 {% block title %}{{ stream.effective_name }} | Streams{% endblock %}
 
 {% block content %}
-  <nav aria-label="Breadcrumb" class="mb-6 text-sm text-zinc-500 dark:text-zinc-400">
-    <a href="{% url 'catalog:home' %}" class="font-medium hover:text-brand-600">Directory</a>
+  <nav aria-label="{% translate 'Breadcrumb' %}" class="mb-6 text-sm text-zinc-500 dark:text-zinc-400">
+    <a href="{% url 'catalog:home' %}" class="font-medium hover:text-brand-600">Streams</a>
     <span class="mx-2" aria-hidden="true">/</span>
     <span aria-current="page">{{ stream.effective_name }}</span>
   </nav>
 
   <div class="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div class="min-w-0">
-      <p class="mb-2 text-sm font-semibold uppercase tracking-widest text-brand-600 dark:text-brand-500">Channel</p>
+      <p class="mb-2 text-sm font-semibold uppercase tracking-widest text-brand-600 dark:text-brand-400">{% translate "Channel" %}</p>
       <h1 class="break-words text-3xl font-black text-zinc-950 sm:text-4xl dark:text-white">{{ stream.effective_name }}</h1>
     </div>
     {% include "catalog/partials.html#status_badge" with stream=stream only %}
@@ -21,12 +22,12 @@
     {% include "catalog/partials.html#source_warning" with source=source only %}
   {% endif %}
 
-  <section aria-label="Player" class="player-grid aspect-video w-full overflow-hidden rounded-lg border border-zinc-800">
+  <section aria-label="{% translate 'Player' %}" class="player-grid aspect-video w-full overflow-hidden rounded-lg border border-zinc-800">
     {% if stream.status == "live" %}
       <iframe
         class="size-full border-0 bg-black"
         src="{{ stream.hls_embed_url }}"
-        title="{{ stream.effective_name }} HLS player"
+        title="{% blocktranslate with name=stream.effective_name %}{{ name }} player{% endblocktranslate %}"
         allow="autoplay; fullscreen; picture-in-picture"
         allowfullscreen
         referrerpolicy="same-origin"
@@ -34,15 +35,22 @@
     {% else %}
       <div class="grid size-full place-items-center p-8 text-center">
         <div class="max-w-md">
-          <p class="text-lg font-bold text-white">{% if stream.status == "offline" %}This stream is offline{% else %}Status cannot be confirmed{% endif %}</p>
-          <p class="mt-2 text-sm leading-6 text-zinc-400">Playback becomes available when a fresh live source is detected.</p>
+          <p class="text-lg font-bold text-white">{% if stream.status == "offline" %}{% translate "This stream is offline" %}{% else %}{% translate "Status cannot be confirmed" %}{% endif %}</p>
+          <p class="mt-2 text-sm leading-6 text-zinc-400">{% translate "Playback becomes available when a fresh live source is detected." %}</p>
         </div>
       </div>
     {% endif %}
   </section>
 
+  {% if stream.description %}
+    <section id="stream-description" class="mt-8 border-y border-zinc-200 bg-surface-card px-6 py-7 dark:border-zinc-700" aria-labelledby="stream-description-title">
+      <h2 id="stream-description-title" class="text-xl font-bold">{% translate "About this stream" %}</h2>
+      <div class="stream-description mt-4">{{ stream.description|render_markdown }}</div>
+    </section>
+  {% endif %}
+
   <section class="mt-8 border-y border-zinc-200 py-6 dark:border-zinc-800" aria-labelledby="stream-metadata">
-    <h2 id="stream-metadata" class="mb-4 text-lg font-bold">Signal</h2>
+    <h2 id="stream-metadata" class="mb-4 text-lg font-bold">{% translate "Signal" %}</h2>
     {% include "catalog/partials.html#track_summary" with stream=stream only %}
   </section>
 {% endblock %}

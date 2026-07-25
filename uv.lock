@@ -827,6 +827,7 @@ dependencies = [
     { name = "drf-spectacular-sidecar" },
     { name = "gunicorn" },
     { name = "httpx", extra = ["http2"] },
+    { name = "markdown-it-py" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic" },
 ]
@@ -850,6 +851,7 @@ requires-dist = [
     { name = "drf-spectacular-sidecar", specifier = ">=2025.9.1" },
     { name = "gunicorn", specifier = ">=23.0,<24" },
     { name = "httpx", extras = ["http2"], specifier = ">=0.28,<0.29" },
+    { name = "markdown-it-py", specifier = ">=4.0,<5" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2,<3.4" },
     { name = "pydantic", specifier = ">=2.12,<3" },
 ]

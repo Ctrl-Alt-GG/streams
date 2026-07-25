@@ -10,6 +10,9 @@ WORKDIR /app
 
 RUN groupadd --gid 10001 app \
     && useradd --uid 10001 --gid app --no-create-home --shell /usr/sbin/nologin app \
+    && apt-get update \
+    && apt-get install --yes --no-install-recommends gettext \
+    && rm -rf /var/lib/apt/lists/* \
     && python -m pip install --no-cache-dir uv==0.11.32
 
 COPY pyproject.toml uv.lock README.md ./
@@ -23,7 +26,8 @@ COPY --chown=10001:10001 manage.py ./
 COPY --chown=10001:10001 src ./src
 COPY --chown=10001:10001 generated_static ./generated_static
 
-RUN python manage.py tailwind --settings=config.settings.base build --force \
+RUN python manage.py compilemessages --settings=config.settings.base \
+    && python manage.py tailwind --settings=config.settings.base build --force \
     && rm -rf .django_tailwind_cli
 
 USER 10001:10001

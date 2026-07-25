@@ -1,13 +1,13 @@
 {% extends "catalog/base.html" %}
+{% load i18n %}
 
-{% block title %}Streams directory{% endblock %}
+{% block title %}Streams{% endblock %}
 
 {% block content %}
   <section class="mb-10 max-w-3xl">
-    <p class="mb-3 text-sm font-semibold uppercase tracking-widest text-brand-600 dark:text-brand-500">Directory</p>
-    <h1 class="display-title text-4xl font-black sm:text-5xl">Streams</h1>
+    <h1 class="bg-gradient-to-br from-brand-500 to-brand-400 bg-clip-text pb-[0.15em] text-4xl font-bold text-transparent sm:text-5xl">{% translate "Live channels" %}</h1>
     <p class="mt-4 max-w-2xl text-base leading-7 text-zinc-600 dark:text-zinc-300">
-      Select a channel to view its current availability and playback.
+      {% translate "Select a channel to view its current availability and playback." %}
     </p>
   </section>
 
@@ -17,28 +17,28 @@
 
   <section aria-labelledby="stream-grid-title">
     <div class="mb-5 flex items-end justify-between gap-4">
-      <h2 id="stream-grid-title" class="text-xl font-bold">All channels</h2>
-      <span class="text-sm text-zinc-500 dark:text-zinc-400">{{ catalog.streams|length }} total</span>
+      <h2 id="stream-grid-title" class="text-xl font-bold">{% translate "All channels" %}</h2>
+      <span class="text-sm text-zinc-500 dark:text-zinc-400">{{ catalog.streams|length }} {% translate "total" %}</span>
     </div>
     <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
       {% for stream in catalog.streams %}
         {% include "catalog/partials.html#stream_card" with stream=stream only %}
       {% empty %}
         <div class="border-y border-zinc-200 py-12 text-center dark:border-zinc-800">
-          <p class="font-semibold">No streams have been discovered.</p>
-          <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">The directory will populate after the next successful reconciliation.</p>
+          <p class="font-semibold">{% translate "No streams yet." %}</p>
+          <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{% translate "Streams will appear after the next refresh." %}</p>
         </div>
       {% endfor %}
     </div>
   </section>
 
-  <section class="mt-14 border-y border-zinc-200 py-8 dark:border-zinc-800">
+  <section class="brand-panel mt-14 px-6 py-7">
     <div class="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
       <div>
-        <h2 class="text-lg font-bold">Publish a stream</h2>
-        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">OBS and FFmpeg connection details are available in the publishing guide.</p>
+        <h2 class="text-lg font-bold">{% translate "Publish a stream" %}</h2>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">{% translate "OBS and FFmpeg connection details are available in the publishing guide." %}</p>
       </div>
-      <a href="{% url 'catalog:tutorial' %}" class="rounded-md bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">Open guide</a>
+      <a href="{% url 'catalog:tutorial' %}" class="rounded-md bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700">{% translate "Open guide" %}</a>
     </div>
   </section>
 {% endblock %}

@@ -6,7 +6,7 @@ from django.conf import settings
 def encode_path(path_name: str) -> str:
     segments = path_name.split("/")
     if not segments or any(segment in {"", ".", ".."} for segment in segments):
-        raise ValueError("MediaMTX path contains an unsafe segment.")
+        raise ValueError("Stream path contains an unsafe segment.")
     return "/".join(quote(segment, safe="") for segment in segments)
 
 

@@ -5,12 +5,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from catalog.api.serializers import (
-    DisplayNameSerializer,
-    PublishingGuideSerializer,
+    PublishingConfigurationSerializer,
     StreamDetailEnvelopeSerializer,
     StreamListEnvelopeSerializer,
+    StreamOverlaySerializer,
 )
-from catalog.guides import get_publishing_guide
+from catalog.guides import get_publishing_configuration
 from catalog.models import Stream
 from catalog.services.catalog import CatalogService
 
@@ -46,21 +46,24 @@ class StreamDetailView(APIView):
         return Response(_detail(stream_id))
 
     @extend_schema(
-        operation_id="stream_update_display_name",
-        request=DisplayNameSerializer,
+        operation_id="stream_update_overlay",
+        request=StreamOverlaySerializer,
         responses=StreamDetailEnvelopeSerializer,
     )
     def patch(self, request, stream_id):
         stream = get_object_or_404(Stream, pk=stream_id)
-        serializer = DisplayNameSerializer(stream, data=request.data, partial=False)
+        serializer = StreamOverlaySerializer(stream, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(_detail(stream_id))
 
 
-class PublishingGuideView(APIView):
+class PublishingConfigurationView(APIView):
     permission_classes = (AllowAny,)
 
-    @extend_schema(operation_id="publishing_guide_retrieve", responses=PublishingGuideSerializer)
+    @extend_schema(
+        operation_id="publishing_configuration_retrieve",
+        responses=PublishingConfigurationSerializer,
+    )
     def get(self, request):
-        return Response(get_publishing_guide().as_dict())
+        return Response(get_publishing_configuration().as_dict())

@@ -1,4 +1,7 @@
+from django.conf import settings
+from django.conf.urls.i18n import i18n_patterns
 from django.contrib import admin
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerSplitView
 from health_check.views import HealthCheckView
@@ -27,5 +30,13 @@ urlpatterns = [
         ),
         name="health",
     ),
-    path("", include("catalog.urls")),
 ]
+
+urlpatterns += i18n_patterns(
+    path("i18n/", include("django.conf.urls.i18n")),
+    path("", include("catalog.urls")),
+    prefix_default_language=False,
+)
+
+if settings.DEBUG:
+    urlpatterns += staticfiles_urlpatterns()

@@ -97,17 +97,21 @@ class MediaMTXClient:
                 page = Page.model_validate(response.json())
                 parsed_items = [item_type.model_validate(item) for item in page.items]
             except (ValueError, ValidationError) as error:
-                raise MediaMTXSchemaError("MediaMTX returned an invalid list response.") from error
+                raise MediaMTXSchemaError(
+                    "The streaming service returned an invalid list response."
+                ) from error
 
             if page.page_count == 0 and page.items:
-                raise MediaMTXSchemaError("MediaMTX returned items with zero pages.")
+                raise MediaMTXSchemaError("The streaming service returned items with zero pages.")
             if page.page_count and page_number >= page.page_count:
-                raise MediaMTXSchemaError("MediaMTX returned an inconsistent page count.")
+                raise MediaMTXSchemaError(
+                    "The streaming service returned an inconsistent page count."
+                )
 
             for item in parsed_items:
                 previous = seen.get(item.name)
                 if previous is not None and previous != item:
-                    raise MediaMTXSchemaError("MediaMTX returned conflicting duplicate paths.")
+                    raise MediaMTXSchemaError("The streaming service returned conflicting paths.")
                 if previous is None:
                     seen[item.name] = item
                     yield item

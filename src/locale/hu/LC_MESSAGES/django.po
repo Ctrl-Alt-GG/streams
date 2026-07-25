@@ -1,0 +1,237 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Streams\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-07-25 17:27+0000\n"
+"PO-Revision-Date: 2026-07-25 00:00+0000\n"
+"Last-Translator: Ctrl-Alt-GG\n"
+"Language-Team: Hungarian\n"
+"Language: hu\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Status"
+msgstr "Állapot"
+
+msgid "Unexpected field."
+msgstr "Váratlan mező."
+
+msgid "Provide at least one overlay field."
+msgstr "Adj meg legalább egy módosítandó mezőt."
+
+msgid "A blocked path name cannot be empty."
+msgstr "A tiltott útvonal neve nem lehet üres."
+
+msgid "Markdown is supported."
+msgstr "A Markdown formázás támogatott."
+
+msgid "Description"
+msgstr "Leírás"
+
+msgid "Stream path names are immutable."
+msgstr "A közvetítési útvonalak neve nem módosítható."
+
+msgid "Forbidden"
+msgstr "Tiltott művelet"
+
+msgid "Access denied"
+msgstr "Hozzáférés megtagadva"
+
+msgid "Your account cannot perform this action."
+msgstr "A fiókoddal nem hajthatod végre ezt a műveletet."
+
+msgid "Not found"
+msgstr "Nem található"
+
+msgid "Page not found"
+msgstr "Az oldal nem található"
+
+msgid "The requested channel or page does not exist."
+msgstr "A kért csatorna vagy oldal nem létezik."
+
+msgid "Return to Streams"
+msgstr "Vissza a Streams oldalra"
+
+msgid "Server error"
+msgstr "Szerverhiba"
+
+msgid "Service unavailable"
+msgstr "A szolgáltatás nem érhető el"
+
+msgid "The request could not be completed. Try again shortly."
+msgstr "A kérés nem teljesíthető. Próbáld újra hamarosan."
+
+msgid "Ctrl-Alt-GG Streams home"
+msgstr "Ctrl-Alt-GG Streams kezdőlap"
+
+msgid "Primary navigation"
+msgstr "Fő navigáció"
+
+msgid "Watch"
+msgstr "Adások"
+
+msgid "Publish"
+msgstr "Közvetítés"
+
+msgid "Admin"
+msgstr "Adminisztráció"
+
+msgid "Language"
+msgstr "Nyelv"
+
+msgid "Live channels"
+msgstr "Élő csatornák"
+
+msgid "Select a channel to view its current availability and playback."
+msgstr ""
+"Válassz egy csatornát az aktuális elérhetőségének és lejátszásának "
+"megtekintéséhez."
+
+msgid "All channels"
+msgstr "Összes csatorna"
+
+msgid "total"
+msgstr "összesen"
+
+msgid "No streams yet."
+msgstr "Még nincsenek közvetítések."
+
+msgid "Streams will appear after the next refresh."
+msgstr "A közvetítések a következő frissítés után jelennek meg."
+
+msgid "Publish a stream"
+msgstr "Közvetítés indítása"
+
+msgid ""
+"OBS and FFmpeg connection details are available in the publishing guide."
+msgstr ""
+"Az OBS és az FFmpeg kapcsolódási adatait a közvetítési útmutatóban találod."
+
+msgid "Open guide"
+msgstr "Útmutató megnyitása"
+
+msgid "Live"
+msgstr "Élő"
+
+msgid "Offline"
+msgstr "Nem elérhető"
+
+msgid "Unknown"
+msgstr "Ismeretlen"
+
+msgid "Media tracks"
+msgstr "Médiasávok"
+
+msgid "Open"
+msgstr "Megnyitás"
+
+msgid "Stream status may be outdated while the source reconnects."
+msgstr "A közvetítés állapota elavult lehet, amíg a forrás újracsatlakozik."
+
+msgid "Stream status is temporarily unavailable."
+msgstr "A közvetítés állapota átmenetileg nem érhető el."
+
+msgid "Breadcrumb"
+msgstr "Morzsanavigáció"
+
+msgid "Channel"
+msgstr "Csatorna"
+
+msgid "Player"
+msgstr "Lejátszó"
+
+#, python-format
+msgid "%(name)s player"
+msgstr "%(name)s lejátszó"
+
+msgid "This stream is offline"
+msgstr "Ez a közvetítés nem érhető el"
+
+msgid "Status cannot be confirmed"
+msgstr "Az állapot nem erősíthető meg"
+
+msgid "Playback becomes available when a fresh live source is detected."
+msgstr ""
+"A lejátszás akkor válik elérhetővé, amikor a rendszer friss, élő forrást "
+"észlel."
+
+msgid "About this stream"
+msgstr "A közvetítésről"
+
+msgid "Signal"
+msgstr "Jel"
+
+msgid "Publishing guide"
+msgstr "Közvetítési útmutató"
+
+msgid "Publishing"
+msgstr "Közvetítés"
+
+msgid "Go live"
+msgstr "Élő adás indítása"
+
+msgid "Publish to a unique path using the secure ingest endpoint."
+msgstr ""
+"Közvetíts egy egyedi útvonalra a biztonságos bemeneti végpont használatával."
+
+msgid "Stream key format"
+msgstr "Közvetítési kulcs formátuma"
+
+msgid "Replace SOMETHING with a unique name; live/ alone is rejected."
+msgstr ""
+"A SOMETHING helyére írj egyedi nevet; a live/ önmagában nem engedélyezett."
+
+msgid "Service"
+msgstr "Szolgáltatás"
+
+msgid "Custom"
+msgstr "Egyéni"
+
+msgid "Server"
+msgstr "Szerver"
+
+msgid "Stream key"
+msgstr "Közvetítési kulcs"
+
+msgid "Open Settings, then select Stream."
+msgstr "Nyisd meg a Beállításokat, majd válaszd a Közvetítés lehetőséget."
+
+msgid "Choose Custom as the service and enter the server URL shown here."
+msgstr ""
+"Válaszd az Egyéni szolgáltatást, majd add meg az itt látható szervercímet."
+
+msgid ""
+"Set the stream key to live/SOMETHING, replacing SOMETHING with your unique "
+"stream name."
+msgstr ""
+"Állítsd a közvetítési kulcsot a live/SOMETHING értékre, a SOMETHING helyére "
+"pedig írd az egyedi közvetítésnevedet."
+
+msgid ""
+"Use only letters, numbers, hyphens, or underscores for SOMETHING. Do not "
+"publish to live/ by itself."
+msgstr ""
+"A SOMETHING csak betűket, számokat, kötőjeleket és aláhúzásjeleket "
+"tartalmazhat. Ne közvetíts önmagában a live/ útvonalra."
+
+msgid "Enter publishing credentials when prompted, then start streaming."
+msgstr ""
+"Amikor a rendszer kéri, add meg a közvetítési hitelesítő adatokat, majd "
+"indítsd el a közvetítést."
+
+msgid "Before publishing"
+msgstr "Közvetítés előtt"
+
+msgid ""
+"Publishing credentials are assigned separately and are never displayed here."
+msgstr ""
+"A közvetítési hitelesítő adatokat külön kapod meg; ezen az oldalon soha nem "
+"jelennek meg."
+
+msgid "Treat your unique stream name and credentials as private."
+msgstr "Az egyedi közvetítésnevet és a hitelesítő adatokat kezeld bizalmasan."
+
+msgid "Use the TLS-protected RTMPS endpoint only."
+msgstr "Kizárólag a TLS-sel védett RTMPS-végpontot használd."

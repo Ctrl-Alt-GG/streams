@@ -1,10 +1,11 @@
 {% extends "catalog/base.html" %}
-{% block title %}Not found | Streams{% endblock %}
+{% load i18n %}
+{% block title %}{% translate "Not found" %} | Streams{% endblock %}
 {% block content %}
   <section class="max-w-xl py-12">
     <p class="text-sm font-semibold uppercase tracking-widest text-brand-600">404</p>
-    <h1 class="mt-3 text-4xl font-black">Page not found</h1>
-    <p class="mt-4 text-zinc-600 dark:text-zinc-300">The requested channel or page does not exist.</p>
-    <a href="{% url 'catalog:home' %}" class="mt-7 inline-flex rounded-md bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white">Return to directory</a>
+    <h1 class="mt-3 text-4xl font-black">{% translate "Page not found" %}</h1>
+    <p class="mt-4 text-zinc-600 dark:text-zinc-300">{% translate "The requested channel or page does not exist." %}</p>
+    <a href="{% url 'catalog:home' %}" class="mt-7 inline-flex rounded-md bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white">{% translate "Return to Streams" %}</a>
   </section>
 {% endblock %}

@@ -24,4 +24,4 @@ COPY --chown=10001:10001 src ./src
 
 USER 10001:10001
 
-CMD ["/bin/sh", "-c", "exec celery --app=config worker --loglevel=\"${CELERY_LOG_LEVEL:-INFO}\" --queues=mediamtx --hostname=\"worker@${HOSTNAME}\""]
+CMD ["/bin/sh", "-c", "exec celery --app=config worker --loglevel=\"${CELERY_LOG_LEVEL:-INFO}\" --queues=mediamtx-quorum --hostname=\"worker@${HOSTNAME}\" --without-mingle --without-gossip"]

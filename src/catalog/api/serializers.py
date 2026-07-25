@@ -1,3 +1,4 @@
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from catalog.models import Stream
@@ -14,6 +15,7 @@ class TrackSerializer(serializers.Serializer):
 class StreamSerializer(serializers.Serializer):
     id = serializers.UUIDField()
     display_name = serializers.CharField(allow_blank=True)
+    description = serializers.CharField(allow_blank=True)
     effective_name = serializers.CharField()
     status = serializers.ChoiceField(choices=("live", "offline", "unknown"))
     available = serializers.BooleanField(allow_null=True)
@@ -42,24 +44,46 @@ class StreamDetailEnvelopeSerializer(serializers.Serializer):
     result = StreamSerializer()
 
 
-class DisplayNameSerializer(serializers.Serializer):
-    display_name = serializers.CharField(max_length=200, allow_blank=True, trim_whitespace=True)
+class StreamOverlaySerializer(serializers.Serializer):
+    display_name = serializers.CharField(
+        max_length=200,
+        allow_blank=True,
+        trim_whitespace=True,
+        required=False,
+    )
+    description = serializers.CharField(
+        allow_blank=True,
+        trim_whitespace=True,
+        required=False,
+    )
 
     def to_internal_value(self, data):
-        unknown = set(data) - {"display_name"} if isinstance(data, dict) else set()
+        allowed_fields = {"display_name", "description"}
+        unknown = set(data) - allowed_fields if isinstance(data, dict) else set()
         if unknown:
-            raise serializers.ValidationError({key: "Unexpected field." for key in sorted(unknown)})
+            raise serializers.ValidationError(
+                {key: _("Unexpected field.") for key in sorted(unknown)}
+            )
         return super().to_internal_value(data)
 
+    def validate(self, attrs):
+        if not attrs:
+            raise serializers.ValidationError(_("Provide at least one overlay field."))
+        return attrs
+
     def update(self, instance: Stream, validated_data):
-        instance.display_name = validated_data["display_name"]
-        instance.save(update_fields=("display_name", "updated_at"))
+        update_fields = []
+        for field in ("display_name", "description"):
+            if field in validated_data:
+                setattr(instance, field, validated_data[field])
+                update_fields.append(field)
+        instance.save(update_fields=(*update_fields, "updated_at"))
         return instance
 
 
-class PublishingGuideSerializer(serializers.Serializer):
+class PublishingConfigurationSerializer(serializers.Serializer):
     server_url = serializers.CharField()
     authentication_required = serializers.BooleanField()
-    obs_steps = serializers.ListField(child=serializers.CharField())
+    stream_key_prefix = serializers.CharField()
+    stream_key_example = serializers.CharField()
     ffmpeg_template = serializers.CharField()
-    safety_notes = serializers.ListField(child=serializers.CharField())

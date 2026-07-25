@@ -1,7 +1,7 @@
 from django.http import Http404
 from django.shortcuts import render
 
-from catalog.guides import get_publishing_guide
+from catalog.guides import get_publishing_configuration
 from catalog.models import Stream
 from catalog.services.catalog import CatalogService
 
@@ -19,4 +19,8 @@ def stream_detail(request, stream_id):
 
 
 def tutorial(request):
-    return render(request, "catalog/tutorial.html", {"guide": get_publishing_guide()})
+    return render(
+        request,
+        "catalog/tutorial.html",
+        {"publishing": get_publishing_configuration()},
+    )
