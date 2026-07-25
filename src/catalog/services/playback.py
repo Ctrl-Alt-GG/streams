@@ -5,7 +5,12 @@ from django.conf import settings
 
 def encode_path(path_name: str) -> str:
     segments = path_name.split("/")
-    if not segments or any(segment in {"", ".", ".."} for segment in segments):
+    if (
+        not path_name
+        or path_name.startswith("/")
+        or path_name.endswith("/")
+        or any(segment in {".", ".."} for segment in segments)
+    ):
         raise ValueError("Stream path contains an unsafe segment.")
     return "/".join(quote(segment, safe="") for segment in segments)
 

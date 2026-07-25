@@ -22,7 +22,7 @@
     {% include "catalog/partials.html#source_warning" with source=source only %}
   {% endif %}
 
-  <section aria-label="{% translate 'Player' %}" class="player-grid aspect-video w-full overflow-hidden rounded-lg border border-zinc-800">
+  <section aria-label="{% translate 'Player' %}" class="aspect-video w-full overflow-hidden rounded-lg border border-zinc-800 bg-[#0c0b0d] [background-image:linear-gradient(#ffffff0c_1px,transparent_1px),linear-gradient(90deg,#ffffff0c_1px,transparent_1px)] [background-size:1.5rem_1.5rem]">
     {% if stream.status == "live" %}
       <div class="relative size-full bg-black">
         <video
@@ -49,9 +49,9 @@
   </section>
 
   {% if stream.description %}
-    <section id="stream-description" class="mt-8 border-y border-zinc-200 bg-surface-card px-6 py-7 dark:border-zinc-700" aria-labelledby="stream-description-title">
+    <section id="stream-description" class="mt-8 border-y border-zinc-200 bg-white px-6 py-7 dark:border-zinc-700 dark:bg-zinc-800" aria-labelledby="stream-description-title">
       <h2 id="stream-description-title" class="text-xl font-bold">{% translate "About this stream" %}</h2>
-      <div class="stream-description mt-4">{{ stream.description|render_markdown }}</div>
+      <div class="mt-4 leading-7 text-zinc-700 [overflow-wrap:anywhere] [&>*+*]:mt-4 [&_a]:font-semibold [&_a]:text-brand-600 [&_a]:underline [&_a]:underline-offset-[0.2em] [&_blockquote]:border-l-[3px] [&_blockquote]:border-brand-500 [&_blockquote]:pl-4 [&_blockquote]:text-zinc-600 [&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-[0.35rem] [&_code]:py-[0.15rem] [&_code]:text-[0.9em] [&_h1]:text-xl [&_h1]:font-bold [&_h1]:leading-[1.3] [&_h1]:text-zinc-900 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:leading-[1.3] [&_h2]:text-zinc-900 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:leading-[1.3] [&_h3]:text-zinc-900 [&_li+li]:mt-1.5 [&_ol]:list-decimal [&_ol]:pl-6 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-[#0c0b0d] [&_pre]:p-4 [&_pre]:text-zinc-100 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_ul]:list-disc [&_ul]:pl-6 dark:text-zinc-300 dark:[&_a]:text-brand-400 dark:[&_blockquote]:text-zinc-400 dark:[&_code]:bg-zinc-700 dark:[&_h1]:text-zinc-100 dark:[&_h2]:text-zinc-100 dark:[&_h3]:text-zinc-100">{{ stream.description|render_markdown }}</div>
     </section>
   {% endif %}
 

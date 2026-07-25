@@ -23,12 +23,14 @@ logger = logging.getLogger(__name__)
 
 def _track(track: dict[str, Any]) -> dict:
     codec = str(track.get("codec") or track.get("type") or "unknown")
+    codec_props = track.get("codecProps")
+    properties = codec_props if isinstance(codec_props, dict) else track
     return {
         "codec": codec,
-        "width": track.get("width"),
-        "height": track.get("height"),
-        "sample_rate": track.get("sampleRate"),
-        "channel_count": track.get("channelCount"),
+        "width": properties.get("width"),
+        "height": properties.get("height"),
+        "sample_rate": properties.get("sampleRate"),
+        "channel_count": properties.get("channelCount"),
     }
 
 
@@ -76,7 +78,11 @@ def refresh_mediamtx_snapshot(self) -> str:
 
             active_by_name = {path.name: path for path in active_paths}
             names = set(active_by_name)
-            names.update(path.name for path in configured_paths if not path.name.startswith("~"))
+            names.update(
+                path.name
+                for path in configured_paths
+                if not path.name.startswith("~") and path.name not in {"all", "all_others"}
+            )
             names.difference_update(BlockedPath.objects.values_list("path_name", flat=True))
             with transaction.atomic():
                 Stream.objects.bulk_create(

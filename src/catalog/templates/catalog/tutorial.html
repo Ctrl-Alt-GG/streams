@@ -6,13 +6,13 @@
 {% block content %}
   <section class="max-w-3xl">
     <p class="mb-3 text-sm font-semibold uppercase tracking-widest text-brand-600 dark:text-brand-400">{% translate "Publishing" %}</p>
-    <h1 class="display-title text-4xl font-black sm:text-5xl">{% translate "Go live" %}</h1>
+    <h1 class="text-4xl font-black sm:text-5xl">{% translate "Go live" %}</h1>
     <p class="mt-4 text-base leading-7 text-zinc-600 dark:text-zinc-300">
       {% translate "Publish to a unique path using the secure ingest endpoint." %}
     </p>
   </section>
 
-  <aside class="brand-panel mt-8 flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center" aria-labelledby="stream-key-format">
+  <aside class="mt-8 flex flex-col gap-4 rounded-lg border border-brand-600/25 bg-gradient-to-br from-brand-600/10 to-brand-600/5 px-5 py-5 sm:flex-row sm:items-center" aria-labelledby="stream-key-format">
     <div class="shrink-0">
       <h2 id="stream-key-format" class="text-xs font-semibold uppercase text-brand-700 dark:text-brand-300">{% translate "Stream key format" %}</h2>
       <code class="mt-2 block font-mono text-lg font-semibold text-zinc-950 dark:text-white">{{ publishing.stream_key_example }}</code>
@@ -21,7 +21,7 @@
   </aside>
 
   <div class="mt-10 grid gap-6 lg:grid-cols-[1fr_1.1fr]">
-    <section aria-labelledby="obs-title" class="cag-card-frame px-6 py-6">
+    <section aria-labelledby="obs-title" class="relative overflow-hidden rounded-lg border border-zinc-200 bg-white px-6 py-6 before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-gradient-to-r before:from-brand-600 before:to-brand-500 dark:border-zinc-600 dark:bg-zinc-800">
       <h2 id="obs-title" class="text-2xl font-bold">OBS Studio</h2>
       <dl class="mt-6 border-y border-zinc-200 text-sm dark:border-zinc-800">
         <div class="grid gap-1 border-b border-zinc-200 py-4 dark:border-zinc-800 sm:grid-cols-[8rem_1fr]">
@@ -43,7 +43,7 @@
       </ol>
     </section>
 
-    <section aria-labelledby="ffmpeg-title" class="cag-card-frame min-w-0 px-6 py-6">
+    <section aria-labelledby="ffmpeg-title" class="relative min-w-0 overflow-hidden rounded-lg border border-zinc-200 bg-white px-6 py-6 before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-gradient-to-r before:from-brand-600 before:to-brand-500 dark:border-zinc-600 dark:bg-zinc-800">
       <h2 id="ffmpeg-title" class="text-2xl font-bold">FFmpeg</h2>
       <pre class="mt-6 overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-950 p-5 text-sm leading-6 text-zinc-100"><code>{{ publishing.ffmpeg_template }}</code></pre>
       <h3 class="mt-7 font-bold">{% translate "Before publishing" %}</h3>

@@ -34,7 +34,8 @@ def write_snapshot(snapshot: dict) -> None:
 
 
 def get_poll_health() -> dict | None:
-    return cache.get(POLL_HEALTH_KEY)
+    health = cache.get(POLL_HEALTH_KEY)
+    return health if isinstance(health, dict) else None
 
 
 def record_attempt() -> None:

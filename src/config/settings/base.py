@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "accounts.apps.AccountsConfig",
     "rest_framework",
     "drf_spectacular",
     "drf_spectacular_sidecar",
@@ -78,6 +79,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
+AUTH_USER_MODEL = "accounts.User"
 
 LANGUAGE_CODE = "hu"
 LANGUAGES = [
@@ -198,3 +200,10 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_ROUTES = {"catalog.tasks.refresh_mediamtx_snapshot": {"queue": "mediamtx-quorum"}}
 CELERY_TASK_SOFT_TIME_LIMIT = 7
 CELERY_TASK_TIME_LIMIT = 9
+CELERY_BEAT_SCHEDULE = {
+    "refresh-mediamtx-snapshot": {
+        "task": "catalog.tasks.refresh_mediamtx_snapshot",
+        "schedule": MEDIAMTX_RECONCILE_INTERVAL_SECONDS,
+        "options": {"expires": 9.0, "queue": "mediamtx-quorum"},
+    }
+}

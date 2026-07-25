@@ -115,7 +115,15 @@ class CatalogService:
                 observed = observed.replace(tzinfo=UTC)
             age = max(0.0, (datetime.now(UTC) - observed).total_seconds())
         except TypeError, ValueError:
-            return SourceProjection("unavailable", None, None, 0), None
+            return (
+                SourceProjection(
+                    status="unavailable",
+                    observed_at=None,
+                    age_seconds=None,
+                    failure_count=health.get("consecutive_failures", 0),
+                ),
+                None,
+            )
 
         last_error = health.get("last_error_at")
         last_success = health.get("last_success_at")

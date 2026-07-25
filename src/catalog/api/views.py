@@ -1,8 +1,7 @@
-from dataclasses import replace
-
 from django.http import Http404
-from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
+from rest_framework import mixins
+from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny, DjangoModelPermissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -14,7 +13,7 @@ from catalog.api.serializers import (
     StreamOverlaySerializer,
 )
 from catalog.guides import get_publishing_configuration
-from catalog.models import Stream, get_stream_display_name
+from catalog.models import Stream
 from catalog.services.catalog import CatalogService
 
 
@@ -46,8 +45,10 @@ class StreamListView(APIView):
         )
 
 
-class StreamDetailView(APIView):
+class StreamDetailView(mixins.UpdateModelMixin, GenericAPIView):
     queryset = Stream.objects.all()
+    serializer_class = StreamOverlaySerializer
+    lookup_url_kwarg = "stream_id"
 
     def get_permissions(self):
         return [DjangoModelPermissions()] if self.request.method == "PATCH" else [AllowAny()]
@@ -59,26 +60,10 @@ class StreamDetailView(APIView):
     @extend_schema(
         operation_id="stream_update_overlay",
         request=StreamOverlaySerializer,
-        responses=StreamDetailEnvelopeSerializer,
+        responses=StreamOverlaySerializer,
     )
-    def patch(self, request, stream_id):
-        stream = get_object_or_404(Stream, pk=stream_id)
-        source, projection = _catalog_detail(stream_id)
-        serializer = StreamOverlaySerializer(stream, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        display_name = serializer.validated_data.get("display_name", projection.display_name)
-        description = serializer.validated_data.get("description", projection.description)
-        response_data = _serialize_detail(
-            source,
-            replace(
-                projection,
-                display_name=display_name,
-                description=description,
-                effective_name=get_stream_display_name(projection.path_name, display_name),
-            ),
-        )
-        serializer.save()
-        return Response(response_data)
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
 
 
 class PublishingConfigurationView(APIView):
