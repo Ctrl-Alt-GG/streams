@@ -22,11 +22,15 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Normalize image namespace
+        id: image
+        shell: bash
+        run: echo "namespace=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
       - uses: docker/build-push-action@v7
         with:
           context: .
           file: docker/${{ matrix.component }}.Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/streams-${{ matrix.component }}:${{ github.ref_name }}
-            ghcr.io/${{ github.repository_owner }}/streams-${{ matrix.component }}:latest
+            ghcr.io/${{ steps.image.outputs.namespace }}/streams-${{ matrix.component }}:${{ github.ref_name }}
+            ghcr.io/${{ steps.image.outputs.namespace }}/streams-${{ matrix.component }}:latest
