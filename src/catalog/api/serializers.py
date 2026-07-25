@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
@@ -21,7 +23,7 @@ class StreamSerializer(serializers.Serializer):
     available = serializers.BooleanField(allow_null=True)
     online = serializers.BooleanField(allow_null=True)
     tracks = TrackSerializer(many=True)
-    observed_at = serializers.DateTimeField(allow_null=True)
+    observed_at = serializers.CharField(allow_null=True)
     stale = serializers.BooleanField()
     watch_url = serializers.URLField()
     hls_url = serializers.URLField(allow_null=True)
@@ -29,7 +31,7 @@ class StreamSerializer(serializers.Serializer):
 
 class SourceSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=("fresh", "stale", "unavailable"))
-    observed_at = serializers.DateTimeField(allow_null=True)
+    observed_at = serializers.CharField(allow_null=True)
     age_seconds = serializers.FloatField(allow_null=True)
     failure_count = serializers.IntegerField(min_value=0)
 
@@ -44,22 +46,14 @@ class StreamDetailEnvelopeSerializer(serializers.Serializer):
     result = StreamSerializer()
 
 
-class StreamOverlaySerializer(serializers.Serializer):
-    display_name = serializers.CharField(
-        max_length=200,
-        allow_blank=True,
-        trim_whitespace=True,
-        required=False,
-    )
-    description = serializers.CharField(
-        allow_blank=True,
-        trim_whitespace=True,
-        required=False,
-    )
+class StreamOverlaySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Stream
+        fields = ("display_name", "description")
 
     def to_internal_value(self, data):
         allowed_fields = {"display_name", "description"}
-        unknown = set(data) - allowed_fields if isinstance(data, dict) else set()
+        unknown = set(data) - allowed_fields if isinstance(data, Mapping) else set()
         if unknown:
             raise serializers.ValidationError(
                 {key: _("Unexpected field.") for key in sorted(unknown)}
@@ -70,15 +64,6 @@ class StreamOverlaySerializer(serializers.Serializer):
         if not attrs:
             raise serializers.ValidationError(_("Provide at least one overlay field."))
         return attrs
-
-    def update(self, instance: Stream, validated_data):
-        update_fields = []
-        for field in ("display_name", "description"):
-            if field in validated_data:
-                setattr(instance, field, validated_data[field])
-                update_fields.append(field)
-        instance.save(update_fields=(*update_fields, "updated_at"))
-        return instance
 
 
 class PublishingConfigurationSerializer(serializers.Serializer):

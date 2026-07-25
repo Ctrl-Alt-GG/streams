@@ -1,4 +1,4 @@
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from hashlib import sha256
 from urllib.parse import urljoin
@@ -62,13 +62,6 @@ class StreamProjection:
         index = int.from_bytes(digest[:8], byteorder="big") % len(_STREAM_EMOJIS)
         return _STREAM_EMOJIS[index]
 
-    def as_public_dict(self) -> dict:
-        data = asdict(self)
-        data.pop("path_name")
-        data.pop("hls_embed_url")
-        data["tracks"] = [asdict(track) for track in self.tracks]
-        return data
-
 
 @dataclass(frozen=True, slots=True)
 class SourceProjection:
@@ -76,9 +69,6 @@ class SourceProjection:
     observed_at: str | None
     age_seconds: float | None
     failure_count: int
-
-    def as_dict(self) -> dict:
-        return asdict(self)
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,12 +83,9 @@ class CatalogService:
         health = get_poll_health() or {}
         source, usable_snapshot = self._source(snapshot, health)
         blocked_paths = BlockedPath.objects.values_list("path_name", flat=True)
-        discovered_paths = (snapshot or {}).get("paths", {})
-        records = tuple(
-            Stream.objects.filter(path_name__in=discovered_paths).exclude(
-                path_name__in=blocked_paths
-            )
-        )
+        records = Stream.objects.exclude(path_name__in=blocked_paths)
+        if usable_snapshot is not None:
+            records = records.filter(path_name__in=usable_snapshot.get("paths", {}))
         streams = tuple(self._project(record, usable_snapshot, source) for record in records)
         return CatalogProjection(source=source, streams=tuple(sorted(streams, key=self._sort_key)))
 
@@ -130,12 +117,13 @@ class CatalogService:
         except (TypeError, ValueError):
             return SourceProjection("unavailable", None, None, 0), None
 
-        if age >= settings.MEDIAMTX_CACHE_TTL_SECONDS:
-            return SourceProjection("unavailable", observed_at, age, 0), None
         last_error = health.get("last_error_at")
         last_success = health.get("last_success_at")
         source_status = (
-            "stale" if last_error and (not last_success or last_error > last_success) else "fresh"
+            "stale"
+            if age >= settings.MEDIAMTX_FRESHNESS_SECONDS
+            or (last_error and (not last_success or last_error > last_success))
+            else "fresh"
         )
         return (
             SourceProjection(
@@ -150,7 +138,8 @@ class CatalogService:
     def _project(
         self, record: Stream, snapshot: dict | None, source: SourceProjection
     ) -> StreamProjection:
-        path = snapshot.get("paths", {}).get(record.path_name) if snapshot else None
+        path_data = snapshot.get("paths", {}).get(record.path_name) if snapshot else None
+        path = path_data if isinstance(path_data, dict) else None
         if snapshot is None:
             status = "unknown"
             available = None
@@ -160,7 +149,22 @@ class CatalogService:
             available = bool(path and path.get("available"))
             online = path.get("online") if path else False
             status = "live" if available else "offline"
-            tracks = tuple(Track(**track) for track in (path or {}).get("tracks", []))
+            raw_tracks = (path or {}).get("tracks", [])
+            tracks = (
+                tuple(
+                    Track(
+                        codec=str(track.get("codec") or "unknown"),
+                        width=track.get("width"),
+                        height=track.get("height"),
+                        sample_rate=track.get("sample_rate"),
+                        channel_count=track.get("channel_count"),
+                    )
+                    for track in raw_tracks
+                    if isinstance(track, dict)
+                )
+                if isinstance(raw_tracks, list)
+                else ()
+            )
         watch_path = reverse("catalog:stream-detail", kwargs={"stream_id": record.id})
         watch_url = urljoin(f"{settings.PUBLIC_BASE_URL.rstrip('/')}/", watch_path.lstrip("/"))
         return StreamProjection(

@@ -13,7 +13,7 @@ services:
       start_period: 20s
 
   redis:
-    image: redis:latest
+    image: redis:8.8.1
     restart: unless-stopped
     env_file: .env
     command: ["/bin/sh", "-c", "exec redis-server --save '' --appendonly no --requirepass \"$$REDIS_PASSWORD\""]
@@ -65,7 +65,7 @@ services:
         condition: service_healthy
 
   setup:
-    image: ghcr.io/ctrl-alt-gg/streams-web:${APP_IMAGE_TAG:?set APP_IMAGE_TAG}
+    image: ghcr.io/${GHCR_NAMESPACE:-ctrl-alt-gg}/streams-web:${APP_IMAGE_TAG:?set APP_IMAGE_TAG}
     env_file: .env
     restart: "no"
     read_only: true
@@ -83,7 +83,7 @@ services:
         condition: service_completed_successfully
 
   web:
-    image: ghcr.io/ctrl-alt-gg/streams-web:${APP_IMAGE_TAG:?set APP_IMAGE_TAG}
+    image: ghcr.io/${GHCR_NAMESPACE:-ctrl-alt-gg}/streams-web:${APP_IMAGE_TAG:?set APP_IMAGE_TAG}
     env_file: .env
     restart: unless-stopped
     read_only: true
@@ -112,7 +112,7 @@ services:
         condition: service_started
 
   worker:
-    image: ghcr.io/ctrl-alt-gg/streams-worker:${APP_IMAGE_TAG:?set APP_IMAGE_TAG}
+    image: ghcr.io/${GHCR_NAMESPACE:-ctrl-alt-gg}/streams-worker:${APP_IMAGE_TAG:?set APP_IMAGE_TAG}
     env_file: .env
     restart: unless-stopped
     read_only: true
@@ -132,7 +132,7 @@ services:
         condition: service_healthy
 
   beat:
-    image: ghcr.io/ctrl-alt-gg/streams-beat:${APP_IMAGE_TAG:?set APP_IMAGE_TAG}
+    image: ghcr.io/${GHCR_NAMESPACE:-ctrl-alt-gg}/streams-beat:${APP_IMAGE_TAG:?set APP_IMAGE_TAG}
     env_file: .env
     restart: unless-stopped
     read_only: true

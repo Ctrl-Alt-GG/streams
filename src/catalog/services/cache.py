@@ -6,7 +6,8 @@ from uuid import uuid4
 from django.conf import settings
 from django.core.cache import cache
 
-SNAPSHOT_KEY = "catalog:mediamtx:snapshot:v1"
+SNAPSHOT_SCHEMA_VERSION = 1
+SNAPSHOT_KEY = f"catalog:mediamtx:snapshot:v{SNAPSHOT_SCHEMA_VERSION}"
 POLL_HEALTH_KEY = "catalog:mediamtx:poll-health:v1"
 POLL_LOCK_KEY = "catalog:mediamtx:poll-lock:v1"
 
@@ -16,11 +17,20 @@ def _now() -> str:
 
 
 def get_snapshot() -> dict | None:
-    return cache.get(SNAPSHOT_KEY)
+    snapshot = cache.get(SNAPSHOT_KEY)
+    if (
+        not isinstance(snapshot, dict)
+        or snapshot.get("schema_version") != SNAPSHOT_SCHEMA_VERSION
+        or not isinstance(snapshot.get("observed_at"), str)
+        or not isinstance(snapshot.get("paths"), dict)
+    ):
+        return None
+    return snapshot
 
 
 def write_snapshot(snapshot: dict) -> None:
-    cache.set(SNAPSHOT_KEY, snapshot, timeout=settings.MEDIAMTX_CACHE_TTL_SECONDS)
+    payload = {**snapshot, "schema_version": SNAPSHOT_SCHEMA_VERSION}
+    cache.set(SNAPSHOT_KEY, payload, timeout=settings.MEDIAMTX_SNAPSHOT_RETENTION_SECONDS)
 
 
 def get_poll_health() -> dict | None:
@@ -36,7 +46,7 @@ def record_attempt() -> None:
         "consecutive_failures": previous.get("consecutive_failures", 0),
         "reason": previous.get("reason"),
     }
-    cache.set(POLL_HEALTH_KEY, health, timeout=settings.MEDIAMTX_CACHE_TTL_SECONDS)
+    cache.set(POLL_HEALTH_KEY, health, timeout=settings.MEDIAMTX_SNAPSHOT_RETENTION_SECONDS)
 
 
 def record_success(observed_at: str) -> None:
@@ -47,7 +57,7 @@ def record_success(observed_at: str) -> None:
         "consecutive_failures": 0,
         "reason": None,
     }
-    cache.set(POLL_HEALTH_KEY, health, timeout=settings.MEDIAMTX_CACHE_TTL_SECONDS)
+    cache.set(POLL_HEALTH_KEY, health, timeout=settings.MEDIAMTX_SNAPSHOT_RETENTION_SECONDS)
 
 
 def record_failure(reason: str) -> None:
@@ -60,12 +70,12 @@ def record_failure(reason: str) -> None:
         "consecutive_failures": previous.get("consecutive_failures", 0) + 1,
         "reason": reason,
     }
-    cache.set(POLL_HEALTH_KEY, health, timeout=settings.MEDIAMTX_CACHE_TTL_SECONDS)
+    cache.set(POLL_HEALTH_KEY, health, timeout=settings.MEDIAMTX_SNAPSHOT_RETENTION_SECONDS)
 
 
 @contextmanager
 def reconcile_lock() -> Iterator[bool]:
-    timeout = settings.MEDIAMTX_CACHE_TTL_SECONDS
+    timeout = settings.MEDIAMTX_RECONCILE_LOCK_SECONDS
     lock_factory = getattr(cache, "lock", None)
     if lock_factory is not None:
         lock = lock_factory(POLL_LOCK_KEY, timeout=timeout, blocking_timeout=0)

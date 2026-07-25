@@ -92,8 +92,11 @@ msgstr ""
 msgid "All channels"
 msgstr "Összes csatorna"
 
-msgid "total"
-msgstr "összesen"
+#, python-format
+msgid "%(counter)s stream"
+msgid_plural "%(counter)s streams"
+msgstr[0] "összesen %(counter)s csatorna"
+msgstr[1] "összesen %(counter)s csatorna"
 
 msgid "No streams yet."
 msgstr "Még nincsenek közvetítések."

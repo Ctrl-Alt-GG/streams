@@ -1,4 +1,4 @@
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 
 from django.conf import settings
 
@@ -10,9 +10,6 @@ class PublishingConfiguration:
     stream_key_prefix: str
     stream_key_example: str
     ffmpeg_template: str
-
-    def as_dict(self) -> dict:
-        return asdict(self)
 
 
 def get_publishing_configuration() -> PublishingConfiguration:

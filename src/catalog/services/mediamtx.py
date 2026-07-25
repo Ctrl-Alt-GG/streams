@@ -104,18 +104,13 @@ class MediaMTXClient:
             if page.page_count == 0 and page.items:
                 raise MediaMTXSchemaError("The streaming service returned items with zero pages.")
             if page.page_count and page_number >= page.page_count:
-                raise MediaMTXSchemaError(
-                    "The streaming service returned an inconsistent page count."
-                )
+                break
 
             for item in parsed_items:
-                previous = seen.get(item.name)
-                if previous is not None and previous != item:
-                    raise MediaMTXSchemaError("The streaming service returned conflicting paths.")
-                if previous is None:
-                    seen[item.name] = item
-                    yield item
+                seen[item.name] = item
 
             page_number += 1
             if page_number >= page.page_count:
                 break
+
+        yield from seen.values()

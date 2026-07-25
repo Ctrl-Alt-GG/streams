@@ -62,8 +62,6 @@ def _reason(error: Exception) -> str:
     name="catalog.tasks.refresh_mediamtx_snapshot",
     ignore_result=True,
     acks_late=True,
-    soft_time_limit=7,
-    time_limit=9,
 )
 def refresh_mediamtx_snapshot(self) -> str:
     with reconcile_lock() as acquired:
@@ -105,7 +103,7 @@ def refresh_mediamtx_snapshot(self) -> str:
                         "conf_name": name,
                     }
                 )
-            write_snapshot({"schema_version": 1, "observed_at": observed_at, "paths": paths})
+            write_snapshot({"observed_at": observed_at, "paths": paths})
             record_success(observed_at)
             duration = (datetime.now(UTC) - started_at).total_seconds()
             logger.info(

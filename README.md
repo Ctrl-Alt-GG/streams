@@ -1,5 +1,8 @@
 # Streams
-Private Django directory for streams served by an external MediaMTX deployment.
+Network-private Django directory for streams served by an external MediaMTX deployment.
+Catalog pages, publishing guidance, playback URLs, and read-only API endpoints are
+intentionally anonymous and must be protected by a private ingress, VPN, or equivalent
+network boundary. Staff-only API writes use the authenticated Django admin session.
 
 ## Static assets
 

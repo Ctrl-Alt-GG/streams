@@ -1,7 +1,19 @@
 from django.contrib import admin
+from django.contrib.admin.views.main import ChangeList
 from django.utils.translation import gettext_lazy as _
 
 from catalog.models import BlockedPath, Stream
+
+
+class StreamChangeList(ChangeList):
+    def get_results(self, request) -> None:
+        super().get_results(request)
+
+        from catalog.services.catalog import CatalogService
+
+        statuses = {stream.id: stream.status for stream in CatalogService().list().streams}
+        for stream in self.result_list:
+            stream.catalog_status = statuses.get(str(stream.pk), "unknown")
 
 
 @admin.register(BlockedPath)
@@ -32,11 +44,9 @@ class StreamAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None) -> bool:
         return False
 
+    def get_changelist(self, request, **kwargs):
+        return StreamChangeList
+
     @admin.display(description=_("Status"))
     def status(self, obj) -> str:
-        from catalog.services.catalog import CatalogService
-
-        try:
-            return CatalogService().get(obj.pk)[1].status
-        except Stream.DoesNotExist:
-            return "unknown"
+        return obj.catalog_status

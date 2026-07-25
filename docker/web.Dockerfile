@@ -26,7 +26,7 @@ COPY --chown=10001:10001 manage.py ./
 COPY --chown=10001:10001 src ./src
 COPY --chown=10001:10001 generated_static ./generated_static
 
-RUN python manage.py compilemessages --settings=config.settings.base \
+RUN python manage.py compilemessages -l hu --settings=config.settings.base \
     && python manage.py tailwind --settings=config.settings.base build --force \
     && rm -rf .django_tailwind_cli
 

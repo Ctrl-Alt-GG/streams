@@ -116,12 +116,13 @@ MEDIAMTX_RTMP_PUBLIC_BASE_URL = env(
     "MEDIAMTX_RTMP_PUBLIC_BASE_URL", default="rtmps://streams.invalid"
 )
 MEDIAMTX_RECONCILE_INTERVAL_SECONDS = 10
-MEDIAMTX_CACHE_TTL_SECONDS = 15
+MEDIAMTX_RECONCILE_LOCK_SECONDS = 15
+MEDIAMTX_FRESHNESS_SECONDS = 15
+MEDIAMTX_SNAPSHOT_RETENTION_SECONDS = env.int("MEDIAMTX_SNAPSHOT_RETENTION_SECONDS", default=3_600)
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.BasicAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly"
@@ -134,7 +135,6 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "Read-only stream listing with staff-managed display names.",
     "VERSION": "1.0.0",
     "OAS_VERSION": "3.1.0",
-    "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAdminUser"],
     "SWAGGER_UI_DIST": "SIDECAR",
     "SWAGGER_UI_FAVICON_HREF": f"{STATIC_URL.rstrip('/')}/catalog/favicon.svg",
 }
