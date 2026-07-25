@@ -1,5 +1,5 @@
 {% extends "catalog/base.html" %}
-{% load catalog_markdown i18n %}
+{% load catalog_markdown i18n static %}
 
 {% block title %}{{ stream.effective_name }} | Streams{% endblock %}
 
@@ -24,14 +24,20 @@
 
   <section aria-label="{% translate 'Player' %}" class="player-grid aspect-video w-full overflow-hidden rounded-lg border border-zinc-800">
     {% if stream.status == "live" %}
-      <iframe
-        class="size-full border-0 bg-black"
-        src="{{ stream.hls_embed_url }}"
-        title="{% blocktranslate with name=stream.effective_name %}{{ name }} player{% endblocktranslate %}"
-        allow="autoplay; fullscreen; picture-in-picture"
-        allowfullscreen
-        referrerpolicy="same-origin"
-      ></iframe>
+      <div class="relative size-full bg-black">
+        <video
+          class="size-full bg-black"
+          data-hls-player
+          data-source="{{ stream.hls_url }}"
+          data-retry-message="{% translate 'Playback could not start. Retrying...' %}"
+          data-unsupported-message="{% translate 'This browser cannot play this stream.' %}"
+          controls
+          muted
+          autoplay
+          playsinline
+        ></video>
+        <p data-player-message class="pointer-events-none absolute inset-0 hidden place-items-center p-6 text-center text-sm font-semibold text-white"></p>
+      </div>
     {% else %}
       <div class="grid size-full place-items-center p-8 text-center">
         <div class="max-w-md">
@@ -53,4 +59,11 @@
     <h2 id="stream-metadata" class="mb-4 text-lg font-bold">{% translate "Signal" %}</h2>
     {% include "catalog/partials.html#track_summary" with stream=stream only %}
   </section>
+{% endblock %}
+
+{% block scripts %}
+  {% if stream.status == "live" %}
+    <script src="{{ stream.hls_embed_url }}/hls.min.js" referrerpolicy="no-referrer" defer></script>
+    <script src="{% static 'catalog/js/player.js' %}" defer></script>
+  {% endif %}
 {% endblock %}

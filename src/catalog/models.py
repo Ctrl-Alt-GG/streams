@@ -5,6 +5,11 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 
+def get_stream_display_name(path_name: str, display_name: str = "") -> str:
+    friendly_path_name = path_name.removeprefix("live/")
+    return display_name or friendly_path_name or path_name
+
+
 class BlockedPath(models.Model):
     path_name = models.CharField(max_length=512, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -46,7 +51,7 @@ class Stream(models.Model):
 
     @property
     def effective_name(self) -> str:
-        return self.display_name or self.path_name
+        return get_stream_display_name(self.path_name, self.display_name)
 
     def clean(self) -> None:
         super().clean()

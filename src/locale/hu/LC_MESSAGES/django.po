@@ -160,6 +160,12 @@ msgstr ""
 "A lejátszás akkor válik elérhetővé, amikor a rendszer friss, élő forrást "
 "észlel."
 
+msgid "Playback could not start. Retrying..."
+msgstr "A lejátszás nem indult el. Újrapróbálkozás..."
+
+msgid "This browser cannot play this stream."
+msgstr "Ez a böngésző nem tudja lejátszani ezt a közvetítést."
+
 msgid "About this stream"
 msgstr "A közvetítésről"
 

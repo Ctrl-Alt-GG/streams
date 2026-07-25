@@ -14,7 +14,7 @@ from catalog.api.serializers import (
     StreamOverlaySerializer,
 )
 from catalog.guides import get_publishing_configuration
-from catalog.models import Stream
+from catalog.models import Stream, get_stream_display_name
 from catalog.services.catalog import CatalogService
 
 
@@ -74,7 +74,7 @@ class StreamDetailView(APIView):
                 projection,
                 display_name=display_name,
                 description=description,
-                effective_name=display_name or projection.path_name,
+                effective_name=get_stream_display_name(projection.path_name, display_name),
             ),
         )
         serializer.save()
