@@ -1,0 +1,57 @@
+{% extends "catalog/base.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "Publishing guide" %} | Streams{% endblock %}
+
+{% block content %}
+  <section class="max-w-3xl">
+    <p class="mb-3 text-sm font-semibold uppercase tracking-widest text-brand-600 dark:text-brand-400">{% translate "Publishing" %}</p>
+    <h1 class="display-title text-4xl font-black sm:text-5xl">{% translate "Go live" %}</h1>
+    <p class="mt-4 text-base leading-7 text-zinc-600 dark:text-zinc-300">
+      {% translate "Publish to a unique path using the secure ingest endpoint." %}
+    </p>
+  </section>
+
+  <aside class="brand-panel mt-8 flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center" aria-labelledby="stream-key-format">
+    <div class="shrink-0">
+      <h2 id="stream-key-format" class="text-xs font-semibold uppercase text-brand-700 dark:text-brand-300">{% translate "Stream key format" %}</h2>
+      <code class="mt-2 block font-mono text-lg font-semibold text-zinc-950 dark:text-white">{{ publishing.stream_key_example }}</code>
+    </div>
+    <p class="text-sm leading-6 text-zinc-700 dark:text-zinc-200">{% translate "Replace SOMETHING with a unique name; live/ alone is rejected." %}</p>
+  </aside>
+
+  <div class="mt-10 grid gap-6 lg:grid-cols-[1fr_1.1fr]">
+    <section aria-labelledby="obs-title" class="cag-card-frame px-6 py-6">
+      <h2 id="obs-title" class="text-2xl font-bold">OBS Studio</h2>
+      <dl class="mt-6 border-y border-zinc-200 text-sm dark:border-zinc-800">
+        <div class="grid gap-1 border-b border-zinc-200 py-4 dark:border-zinc-800 sm:grid-cols-[8rem_1fr]">
+          <dt class="font-semibold">{% translate "Service" %}</dt><dd>{% translate "Custom" %}</dd>
+        </div>
+        <div class="grid gap-1 border-b border-zinc-200 py-4 dark:border-zinc-800 sm:grid-cols-[8rem_1fr]">
+          <dt class="font-semibold">{% translate "Server" %}</dt><dd class="break-all font-mono">{{ publishing.server_url }}</dd>
+        </div>
+        <div class="grid gap-1 py-4 sm:grid-cols-[8rem_1fr]">
+          <dt class="font-semibold">{% translate "Stream key" %}</dt><dd class="font-mono">{{ publishing.stream_key_example }}</dd>
+        </div>
+      </dl>
+      <ol class="mt-6 list-decimal space-y-4 pl-5 text-sm leading-6 text-zinc-700 marker:font-bold marker:text-brand-600 dark:text-zinc-300 dark:marker:text-brand-400">
+        <li class="pl-2">{% translate "Open Settings, then select Stream." %}</li>
+        <li class="pl-2">{% translate "Choose Custom as the service and enter the server URL shown here." %}</li>
+        <li class="pl-2">{% translate "Set the stream key to live/SOMETHING, replacing SOMETHING with your unique stream name." %}</li>
+        <li class="pl-2">{% translate "Use only letters, numbers, hyphens, or underscores for SOMETHING. Do not publish to live/ by itself." %}</li>
+        <li class="pl-2">{% translate "Enter publishing credentials when prompted, then start streaming." %}</li>
+      </ol>
+    </section>
+
+    <section aria-labelledby="ffmpeg-title" class="cag-card-frame min-w-0 px-6 py-6">
+      <h2 id="ffmpeg-title" class="text-2xl font-bold">FFmpeg</h2>
+      <pre class="mt-6 overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-950 p-5 text-sm leading-6 text-zinc-100"><code>{{ publishing.ffmpeg_template }}</code></pre>
+      <h3 class="mt-7 font-bold">{% translate "Before publishing" %}</h3>
+      <ul class="mt-3 space-y-3 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
+        <li class="border-l-2 border-brand-600 pl-3">{% translate "Publishing credentials are assigned separately and are never displayed here." %}</li>
+        <li class="border-l-2 border-brand-600 pl-3">{% translate "Treat your unique stream name and credentials as private." %}</li>
+        <li class="border-l-2 border-brand-600 pl-3">{% translate "Use the TLS-protected RTMPS endpoint only." %}</li>
+      </ul>
+    </section>
+  </div>
+{% endblock %}

@@ -1,0 +1,13 @@
+.git
+.github
+.django_tailwind_cli
+.env
+.ruff_cache
+.venv
+__pycache__
+*.py[cod]
+data
+db.sqlite3
+staticfiles
+generated_static/*
+!generated_static/.gitkeep

@@ -1,0 +1,69 @@
+{% extends "catalog/base.html" %}
+{% load catalog_markdown i18n static %}
+
+{% block title %}{{ stream.effective_name }} | Streams{% endblock %}
+
+{% block content %}
+  <nav aria-label="{% translate 'Breadcrumb' %}" class="mb-6 text-sm text-zinc-500 dark:text-zinc-400">
+    <a href="{% url 'catalog:home' %}" class="font-medium hover:text-brand-600">Streams</a>
+    <span class="mx-2" aria-hidden="true">/</span>
+    <span aria-current="page">{{ stream.effective_name }}</span>
+  </nav>
+
+  <div class="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div class="min-w-0">
+      <p class="mb-2 text-sm font-semibold uppercase tracking-widest text-brand-600 dark:text-brand-400">{% translate "Channel" %}</p>
+      <h1 class="break-words text-3xl font-black text-zinc-950 sm:text-4xl dark:text-white">{{ stream.effective_name }}</h1>
+    </div>
+    {% include "catalog/partials.html#status_badge" with stream=stream only %}
+  </div>
+
+  {% if source.status != "fresh" %}
+    {% include "catalog/partials.html#source_warning" with source=source only %}
+  {% endif %}
+
+  <section aria-label="{% translate 'Player' %}" class="player-grid aspect-video w-full overflow-hidden rounded-lg border border-zinc-800">
+    {% if stream.status == "live" %}
+      <div class="relative size-full bg-black">
+        <video
+          class="size-full bg-black"
+          data-hls-player
+          data-source="{{ stream.hls_url }}"
+          data-retry-message="{% translate 'Playback could not start. Retrying...' %}"
+          data-unsupported-message="{% translate 'This browser cannot play this stream.' %}"
+          controls
+          muted
+          autoplay
+          playsinline
+        ></video>
+        <p data-player-message class="pointer-events-none absolute inset-0 hidden place-items-center p-6 text-center text-sm font-semibold text-white"></p>
+      </div>
+    {% else %}
+      <div class="grid size-full place-items-center p-8 text-center">
+        <div class="max-w-md">
+          <p class="text-lg font-bold text-white">{% if stream.status == "offline" %}{% translate "This stream is offline" %}{% else %}{% translate "Status cannot be confirmed" %}{% endif %}</p>
+          <p class="mt-2 text-sm leading-6 text-zinc-400">{% translate "Playback becomes available when a fresh live source is detected." %}</p>
+        </div>
+      </div>
+    {% endif %}
+  </section>
+
+  {% if stream.description %}
+    <section id="stream-description" class="mt-8 border-y border-zinc-200 bg-surface-card px-6 py-7 dark:border-zinc-700" aria-labelledby="stream-description-title">
+      <h2 id="stream-description-title" class="text-xl font-bold">{% translate "About this stream" %}</h2>
+      <div class="stream-description mt-4">{{ stream.description|render_markdown }}</div>
+    </section>
+  {% endif %}
+
+  <section class="mt-8 border-y border-zinc-200 py-6 dark:border-zinc-800" aria-labelledby="stream-metadata">
+    <h2 id="stream-metadata" class="mb-4 text-lg font-bold">{% translate "Signal" %}</h2>
+    {% include "catalog/partials.html#track_summary" with stream=stream only %}
+  </section>
+{% endblock %}
+
+{% block scripts %}
+  {% if stream.status == "live" %}
+    <script src="{{ stream.hls_embed_url }}/hls.min.js" referrerpolicy="no-referrer" defer></script>
+    <script src="{% static 'catalog/js/player.js' %}" defer></script>
+  {% endif %}
+{% endblock %}

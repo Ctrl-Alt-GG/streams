@@ -1,0 +1,10 @@
+{% extends "catalog/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Forbidden" %} | Streams{% endblock %}
+{% block content %}
+  <section class="max-w-xl py-12">
+    <p class="text-sm font-semibold uppercase tracking-widest text-brand-600">403</p>
+    <h1 class="mt-3 text-4xl font-black">{% translate "Access denied" %}</h1>
+    <p class="mt-4 text-zinc-600 dark:text-zinc-300">{% translate "Your account cannot perform this action." %}</p>
+  </section>
+{% endblock %}
