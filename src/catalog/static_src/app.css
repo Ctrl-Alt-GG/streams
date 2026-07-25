@@ -1,0 +1,79 @@
+@import "tailwindcss";
+@source "../templates/**/*.html";
+
+@theme {
+  --font-sans: "Trebuchet MS", "Segoe UI", sans-serif;
+  --color-brand-50: #fff1f3;
+  --color-brand-100: #ffe4e8;
+  --color-brand-500: #e12645;
+  --color-brand-600: #c9183a;
+  --color-brand-700: #a40f2e;
+  --color-brand-900: #570719;
+  --color-ink-950: #171317;
+}
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    letter-spacing: 0;
+  }
+
+  body {
+    min-width: 20rem;
+    background-color: #f7f7f8;
+    background-image:
+      linear-gradient(rgba(23, 19, 23, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(23, 19, 23, 0.035) 1px, transparent 1px);
+    background-size: 2rem 2rem;
+  }
+
+  :focus-visible {
+    outline: 3px solid #e12645;
+    outline-offset: 3px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    body {
+      background-color: #151316;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    }
+  }
+}
+
+@layer components {
+  .page-width {
+    width: min(100% - 2rem, 80rem);
+    margin-inline: auto;
+  }
+
+  .display-title {
+    background: linear-gradient(90deg, #f43f5e, #e12645 55%, #0f766e);
+    background-clip: text;
+    color: transparent;
+  }
+
+  .player-grid {
+    background-color: #0c0b0d;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+    background-size: 1.5rem 1.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

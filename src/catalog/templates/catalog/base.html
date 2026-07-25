@@ -1,0 +1,42 @@
+{% load static %}
+<!doctype html>
+<html lang="en" class="min-h-full">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>{% block title %}Streams{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'catalog/css/app.css' %}">
+    {% block head %}{% endblock %}
+  </head>
+  <body class="min-h-screen text-zinc-900 antialiased dark:text-zinc-100">
+    <div class="h-px bg-brand-500" aria-hidden="true"></div>
+    <header class="bg-gradient-to-r from-brand-900 via-[#761027] to-ink-950 text-white shadow-sm">
+      <div class="page-width flex min-h-16 items-center justify-between gap-6 py-3">
+        <a href="{% url 'catalog:home' %}" class="inline-flex items-center gap-3 font-semibold no-underline">
+          <span class="grid size-8 place-items-center rounded-md border border-white/25 bg-white/10 text-sm font-black" aria-hidden="true">S</span>
+          <span class="text-lg">streams</span>
+        </a>
+        <nav aria-label="Primary" class="flex items-center gap-2 text-sm font-medium">
+          <a href="{% url 'catalog:home' %}" class="rounded-md px-3 py-2 hover:bg-white/10">Directory</a>
+          <a href="{% url 'catalog:tutorial' %}" class="rounded-md px-3 py-2 hover:bg-white/10">Publish</a>
+          {% if request.user.is_staff %}
+            <a href="{% url 'admin:index' %}" class="rounded-md px-3 py-2 hover:bg-white/10">Admin</a>
+          {% endif %}
+        </nav>
+      </div>
+    </header>
+
+    <main id="main-content" class="page-width py-10 sm:py-14">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="mt-16 border-t border-zinc-200 bg-zinc-950 text-zinc-300 dark:border-zinc-800">
+      <div class="page-width flex flex-col gap-2 py-8 text-sm sm:flex-row sm:items-center sm:justify-between">
+        <p class="font-semibold text-white">streams</p>
+        <p>Private MediaMTX directory</p>
+      </div>
+    </footer>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

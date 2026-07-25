@@ -1,0 +1,43 @@
+{% extends "catalog/base.html" %}
+
+{% block title %}Publishing guide | Streams{% endblock %}
+
+{% block content %}
+  <section class="max-w-3xl">
+    <p class="mb-3 text-sm font-semibold uppercase tracking-widest text-brand-600 dark:text-brand-500">Publishing</p>
+    <h1 class="display-title text-4xl font-black sm:text-5xl">Go live</h1>
+    <p class="mt-4 text-base leading-7 text-zinc-600 dark:text-zinc-300">Use the assigned path and credentials with the secure ingest endpoint.</p>
+  </section>
+
+  <aside class="mt-8 border-l-4 border-brand-500 bg-brand-50 px-5 py-4 text-sm text-brand-950 dark:bg-brand-900/40 dark:text-brand-100">
+    Credentials and private stream keys are issued separately and never displayed by this site.
+  </aside>
+
+  <div class="mt-10 grid gap-10 lg:grid-cols-[1fr_1.1fr]">
+    <section aria-labelledby="obs-title">
+      <h2 id="obs-title" class="text-2xl font-bold">OBS Studio</h2>
+      <dl class="mt-6 border-y border-zinc-200 text-sm dark:border-zinc-800">
+        <div class="grid gap-1 border-b border-zinc-200 py-4 dark:border-zinc-800 sm:grid-cols-[8rem_1fr]">
+          <dt class="font-semibold">Service</dt><dd>Custom</dd>
+        </div>
+        <div class="grid gap-1 py-4 sm:grid-cols-[8rem_1fr]">
+          <dt class="font-semibold">Server</dt><dd class="break-all font-mono">{{ guide.server_url }}</dd>
+        </div>
+      </dl>
+      <ol class="mt-6 space-y-4 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+        {% for step in guide.obs_steps %}
+          <li class="grid grid-cols-[2rem_1fr] gap-3"><span class="grid size-8 place-items-center rounded-full bg-zinc-900 text-xs font-bold text-white dark:bg-white dark:text-zinc-950">{{ forloop.counter }}</span><span class="pt-1">{{ step }}</span></li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <section aria-labelledby="ffmpeg-title" class="min-w-0">
+      <h2 id="ffmpeg-title" class="text-2xl font-bold">FFmpeg</h2>
+      <pre class="mt-6 overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-950 p-5 text-sm leading-6 text-zinc-100"><code>{{ guide.ffmpeg_template }}</code></pre>
+      <h3 class="mt-7 font-bold">Before publishing</h3>
+      <ul class="mt-3 space-y-3 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
+        {% for note in guide.safety_notes %}<li class="border-l-2 border-teal-600 pl-3">{{ note }}</li>{% endfor %}
+      </ul>
+    </section>
+  </div>
+{% endblock %}
