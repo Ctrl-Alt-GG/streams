@@ -1,5 +1,6 @@
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
+from hashlib import sha256
 from urllib.parse import urljoin
 
 from django.conf import settings
@@ -8,6 +9,25 @@ from django.urls import reverse
 from catalog.models import BlockedPath, Stream
 from catalog.services.cache import get_poll_health, get_snapshot
 from catalog.services.playback import build_hls_embed_url, build_hls_url
+
+_STREAM_EMOJIS = (
+    "🎮",
+    "🕹️",
+    "👾",
+    "🚀",
+    "🌟",
+    "🔥",
+    "🎧",
+    "🎤",
+    "🎬",
+    "🏆",
+    "⚡",
+    "🌈",
+    "💎",
+    "🧩",
+    "🎲",
+    "🪄",
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,6 +55,12 @@ class StreamProjection:
     watch_url: str
     hls_url: str | None
     hls_embed_url: str | None
+
+    @property
+    def emoji(self) -> str:
+        digest = sha256(self.path_name.encode()).digest()
+        index = int.from_bytes(digest[:8], byteorder="big") % len(_STREAM_EMOJIS)
+        return _STREAM_EMOJIS[index]
 
     def as_public_dict(self) -> dict:
         data = asdict(self)
