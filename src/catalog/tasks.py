@@ -44,7 +44,7 @@ def _path_payload(path: ActivePath) -> dict:
 
 
 def _reason(error: Exception) -> str:
-    if isinstance(error, httpx.TimeoutException | SoftTimeLimitExceeded):
+    if isinstance(error, (httpx.TimeoutException, SoftTimeLimitExceeded)):
         return "timeout"
     if isinstance(error, httpx.HTTPStatusError):
         if error.response.status_code in {401, 403}:
@@ -52,7 +52,7 @@ def _reason(error: Exception) -> str:
         return "server"
     if isinstance(error, httpx.TransportError):
         return "transport"
-    if isinstance(error, MediaMTXSchemaError | ValidationError):
+    if isinstance(error, (MediaMTXSchemaError, ValidationError)):
         return "schema"
     return "unknown"
 
