@@ -1,0 +1,17 @@
+{
+  "fallbacks": [
+    "catalog/thumbnails/fallback-bands.svg",
+    "catalog/thumbnails/fallback-waves.svg",
+    "catalog/thumbnails/fallback-grid.svg",
+    "catalog/thumbnails/fallback-rings.svg",
+    "catalog/thumbnails/fallback-tiles.svg"
+  ],
+  "audio_fallbacks": [
+    "catalog/thumbnails/audio-vinyl.svg",
+    "catalog/thumbnails/audio-waveform.svg",
+    "catalog/thumbnails/audio-equalizer.svg",
+    "catalog/thumbnails/audio-cassette.svg",
+    "catalog/thumbnails/audio-headphones.svg"
+  ],
+  "offline": "catalog/thumbnails/offline.svg"
+}

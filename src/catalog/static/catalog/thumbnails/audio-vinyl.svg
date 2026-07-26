@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#24111f"/>
+      <stop offset="0.55" stop-color="#682a48"/>
+      <stop offset="1" stop-color="#d76a51"/>
+    </linearGradient>
+    <radialGradient id="record">
+      <stop stop-color="#eebc6a"/>
+      <stop offset="0.13" stop-color="#eebc6a"/>
+      <stop offset="0.14" stop-color="#16151a"/>
+      <stop offset="1" stop-color="#08090b"/>
+    </radialGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#background)"/>
+  <g fill="none" stroke="#ffd8c5" stroke-linecap="round" stroke-opacity="0.3">
+    <path d="M35 116c37-54 73 54 110 0s73 54 110 0"/>
+    <path d="M35 151c37-38 73 38 110 0s73 38 110 0"/>
+    <path d="M35 186c37-25 73 25 110 0s73 25 110 0"/>
+    <path d="M35 221c37-12 73 12 110 0s73 12 110 0"/>
+  </g>
+  <circle cx="455" cy="180" r="139" fill="#09090b" fill-opacity="0.3"/>
+  <circle cx="455" cy="180" r="126" fill="url(#record)"/>
+  <g fill="none" stroke="#fff" stroke-opacity="0.09">
+    <circle cx="455" cy="180" r="108"/>
+    <circle cx="455" cy="180" r="88"/>
+    <circle cx="455" cy="180" r="67"/>
+  </g>
+  <circle cx="455" cy="180" r="5" fill="#1d1415"/>
+  <path d="M562 64 535 185" fill="none" stroke="#f3dccb" stroke-linecap="round" stroke-width="8"/>
+  <path d="m530 181 15 4-8 31-15-4Z" fill="#f3dccb"/>
+</svg>

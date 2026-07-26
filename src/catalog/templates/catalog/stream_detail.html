@@ -4,16 +4,16 @@
 {% block title %}{{ stream.effective_name }} | Streams{% endblock %}
 
 {% block content %}
-  <nav aria-label="{% translate 'Breadcrumb' %}" class="mb-6 text-sm text-zinc-500 dark:text-zinc-400">
-    <a href="{% url 'catalog:home' %}" class="font-medium hover:text-brand-600">Streams</a>
+  <nav aria-label="{% translate 'Breadcrumb' %}" class="mb-5 text-sm text-zinc-500 dark:text-zinc-400">
+    <a href="{% url 'catalog:home' %}" class="font-semibold hover:text-brand-600 dark:hover:text-brand-400">Streams</a>
     <span class="mx-2" aria-hidden="true">/</span>
     <span aria-current="page">{{ stream.effective_name }}</span>
   </nav>
 
-  <div class="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+  <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div class="min-w-0">
-      <p class="mb-2 text-sm font-semibold uppercase tracking-widest text-brand-600 dark:text-brand-400">{% translate "Channel" %}</p>
-      <h1 class="break-words text-3xl font-black text-zinc-950 sm:text-4xl dark:text-white">{{ stream.effective_name }}</h1>
+      <p class="mb-1.5 text-xs font-bold uppercase tracking-[0.14em] text-brand-600 dark:text-brand-400">{% if stream.audio_only %}{% translate "Station" %}{% else %}{% translate "Channel" %}{% endif %}</p>
+      <h1 class="break-words text-3xl font-black leading-tight text-zinc-950 sm:text-4xl dark:text-white">{{ stream.effective_name }}</h1>
     </div>
     {% include "catalog/partials.html#status_badge" with stream=stream only %}
   </div>
@@ -22,43 +22,113 @@
     {% include "catalog/partials.html#source_warning" with source=source only %}
   {% endif %}
 
-  <section aria-label="{% translate 'Player' %}" class="aspect-video w-full overflow-hidden rounded-lg border border-zinc-800 bg-[#0c0b0d] [background-image:linear-gradient(#ffffff0c_1px,transparent_1px),linear-gradient(90deg,#ffffff0c_1px,transparent_1px)] [background-size:1.5rem_1.5rem]">
-    {% if stream.status == "live" %}
-      <div class="relative size-full bg-black">
-        <video
-          class="size-full bg-black"
-          data-hls-player
-          data-source="{{ stream.hls_url }}"
-          data-retry-message="{% translate 'Playback could not start. Retrying...' %}"
-          data-unsupported-message="{% translate 'This browser cannot play this stream.' %}"
-          controls
-          muted
-          autoplay
-          playsinline
-        ></video>
-        <p data-player-message class="pointer-events-none absolute inset-0 hidden place-items-center p-6 text-center text-sm font-semibold text-white"></p>
-      </div>
-    {% else %}
-      <div class="grid size-full place-items-center p-8 text-center">
-        <div class="max-w-md">
-          <p class="text-lg font-bold text-white">{% if stream.status == "offline" %}{% translate "This stream is offline" %}{% else %}{% translate "Status cannot be confirmed" %}{% endif %}</p>
-          <p class="mt-2 text-sm leading-6 text-zinc-400">{% translate "Playback becomes available when a fresh live source is detected." %}</p>
-        </div>
-      </div>
-    {% endif %}
-  </section>
+  <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-10">
+    <div class="min-w-0">
+      {% if stream.audio_only %}
+        <section aria-label="{% translate 'Radio player' %}" class="relative overflow-hidden rounded-md bg-zinc-950 shadow-2xl ring-1 ring-black/20 dark:ring-white/10">
+          <img src="{{ stream.thumbnail_url }}" alt="" class="absolute inset-0 size-full scale-110 object-cover opacity-25 blur-2xl" width="1280" height="720">
+          <div class="absolute inset-0 bg-[linear-gradient(105deg,rgba(9,9,11,0.96)_20%,rgba(9,9,11,0.78)_100%)]" aria-hidden="true"></div>
+          <div class="relative grid gap-6 p-5 sm:grid-cols-[minmax(11rem,15rem)_minmax(0,1fr)] sm:items-center sm:gap-8 sm:p-8">
+            <div class="relative aspect-square overflow-hidden rounded-md bg-zinc-900 shadow-xl ring-1 ring-white/10">
+              <img src="{{ stream.thumbnail_url }}" alt="" class="size-full object-cover" width="640" height="640">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-white/5" aria-hidden="true"></div>
+              <div class="absolute left-3 top-3">{% include "catalog/partials.html#status_badge" with stream=stream only %}</div>
+            </div>
+            <div class="min-w-0">
+              <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] {% if stream.status == 'live' %}text-brand-300{% else %}text-zinc-400{% endif %}">
+                <span class="size-2 rounded-full {% if stream.status == 'live' %}bg-brand-500 shadow-[0_0_0_4px_rgba(239,68,68,0.16)]{% else %}bg-zinc-500{% endif %}" aria-hidden="true"></span>{% if stream.status == "live" %}{% translate "On air" %}{% else %}{% translate "Off air" %}{% endif %}
+              </p>
+              <h2 class="mt-3 break-words text-2xl font-black text-white sm:text-3xl">{{ stream.effective_name }}</h2>
+              <p class="mt-2 text-sm text-zinc-300">{% if stream.status == "live" %}{% translate "Live audio stream" %}{% else %}{% translate "This station is offline" %}{% endif %}</p>
+              <div class="mt-6 flex h-14 items-center gap-1.5 overflow-hidden rounded-md bg-black/25 px-4 {% if stream.status != 'live' %}opacity-35{% endif %}" aria-hidden="true">
+                <span class="h-3 w-1.5 rounded-full bg-white/35"></span>
+                <span class="h-7 w-1.5 rounded-full bg-white/55"></span>
+                <span class="h-10 w-1.5 rounded-full bg-brand-300"></span>
+                <span class="h-5 w-1.5 rounded-full bg-white/45"></span>
+                <span class="h-9 w-1.5 rounded-full bg-brand-400"></span>
+                <span class="h-4 w-1.5 rounded-full bg-white/40"></span>
+                <span class="h-11 w-1.5 rounded-full bg-brand-300"></span>
+                <span class="h-6 w-1.5 rounded-full bg-white/50"></span>
+                <span class="h-8 w-1.5 rounded-full bg-brand-400"></span>
+                <span class="h-4 w-1.5 rounded-full bg-white/40"></span>
+                <span class="h-7 w-1.5 rounded-full bg-white/55"></span>
+                <span class="h-3 w-1.5 rounded-full bg-white/35"></span>
+              </div>
+              {% if stream.status == "live" %}
+                <button type="button" data-audio-start class="mt-6 inline-flex items-center gap-2 rounded-md bg-white px-4 py-2.5 text-sm font-bold text-zinc-950 transition-colors hover:bg-brand-100 disabled:cursor-wait disabled:opacity-70 motion-reduce:transition-none">
+                  <img src="{% static 'catalog/thumbnails/play.svg' %}" alt="" class="size-5" width="20" height="20">{% translate "Listen live" %}
+                </button>
+                <audio
+                  class="mt-4 hidden w-full"
+                  data-hls-player
+                  data-source="{{ stream.hls_url }}"
+                  data-retry-message="{% translate 'Playback could not start. Retrying...' %}"
+                  data-unsupported-message="{% translate 'This browser cannot play this stream.' %}"
+                  controls
+                  preload="metadata"
+                ></audio>
+                <p data-player-message class="mt-4 hidden rounded-md bg-black/45 p-4 text-sm font-semibold text-white"></p>
+              {% else %}
+                <p class="mt-6 rounded-md bg-black/35 p-4 text-sm leading-6 text-zinc-300">{% translate "Listening will resume when the station returns." %}</p>
+              {% endif %}
+            </div>
+          </div>
+        </section>
+      {% else %}
+        <section aria-label="{% translate 'Player' %}" class="aspect-video w-full overflow-hidden rounded-md bg-black shadow-2xl ring-1 ring-black/20 dark:ring-white/10">
+        {% if stream.status == "live" %}
+          <div class="relative size-full bg-black">
+            <video
+              class="size-full bg-black object-contain"
+              data-hls-player
+              data-source="{{ stream.hls_url }}"
+              data-retry-message="{% translate 'Playback could not start. Retrying...' %}"
+              data-unsupported-message="{% translate 'This browser cannot play this stream.' %}"
+              poster="{{ stream.thumbnail_url }}"
+              controls
+              muted
+              autoplay
+              playsinline
+            ></video>
+            <p data-player-message class="pointer-events-none absolute inset-0 hidden place-items-center bg-black/70 p-6 text-center text-sm font-semibold text-white"></p>
+          </div>
+        {% else %}
+          <div class="relative grid size-full place-items-center overflow-hidden p-8 text-center">
+            <img src="{{ stream.thumbnail_url }}" alt="" class="absolute inset-0 size-full scale-105 object-cover opacity-35 blur-sm" width="1280" height="720">
+            <div class="absolute inset-0 bg-black/65" aria-hidden="true"></div>
+            <div class="relative max-w-md">
+              <p class="text-lg font-bold text-white">{% if stream.status == "offline" %}{% translate "This stream is offline" %}{% else %}{% translate "Status cannot be confirmed" %}{% endif %}</p>
+              <p class="mt-2 text-sm leading-6 text-zinc-300">{% translate "Playback becomes available when a fresh live source is detected." %}</p>
+            </div>
+          </div>
+        {% endif %}
+        </section>
+      {% endif %}
 
-  {% if stream.description %}
-    <section id="stream-description" class="mt-8 border-y border-zinc-200 bg-white px-6 py-7 dark:border-zinc-700 dark:bg-zinc-800" aria-labelledby="stream-description-title">
-      <h2 id="stream-description-title" class="text-xl font-bold">{% translate "About this stream" %}</h2>
-      <div class="mt-4 leading-7 text-zinc-700 [overflow-wrap:anywhere] [&>*+*]:mt-4 [&_a]:font-semibold [&_a]:text-brand-600 [&_a]:underline [&_a]:underline-offset-[0.2em] [&_blockquote]:border-l-[3px] [&_blockquote]:border-brand-500 [&_blockquote]:pl-4 [&_blockquote]:text-zinc-600 [&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-[0.35rem] [&_code]:py-[0.15rem] [&_code]:text-[0.9em] [&_h1]:text-xl [&_h1]:font-bold [&_h1]:leading-[1.3] [&_h1]:text-zinc-900 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:leading-[1.3] [&_h2]:text-zinc-900 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:leading-[1.3] [&_h3]:text-zinc-900 [&_li+li]:mt-1.5 [&_ol]:list-decimal [&_ol]:pl-6 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-[#0c0b0d] [&_pre]:p-4 [&_pre]:text-zinc-100 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_ul]:list-disc [&_ul]:pl-6 dark:text-zinc-300 dark:[&_a]:text-brand-400 dark:[&_blockquote]:text-zinc-400 dark:[&_code]:bg-zinc-700 dark:[&_h1]:text-zinc-100 dark:[&_h2]:text-zinc-100 dark:[&_h3]:text-zinc-100">{{ stream.description|render_markdown }}</div>
-    </section>
-  {% endif %}
+      {% if stream.description %}
+        <section id="stream-description" class="mt-8 border-t border-zinc-300 pt-7 dark:border-zinc-800" aria-labelledby="stream-description-title">
+          <h2 id="stream-description-title" class="text-xl font-black text-zinc-950 dark:text-white">{% translate "About this stream" %}</h2>
+          <div class="mt-4 max-w-4xl leading-7 text-zinc-700 [overflow-wrap:anywhere] [&>*+*]:mt-4 [&_a]:font-semibold [&_a]:text-brand-600 [&_a]:underline [&_a]:underline-offset-[0.2em] [&_blockquote]:border-l-[3px] [&_blockquote]:border-brand-500 [&_blockquote]:pl-4 [&_blockquote]:text-zinc-600 [&_code]:rounded [&_code]:bg-zinc-200 [&_code]:px-[0.35rem] [&_code]:py-[0.15rem] [&_code]:text-[0.9em] [&_h1]:text-xl [&_h1]:font-bold [&_h1]:leading-[1.3] [&_h1]:text-zinc-900 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:leading-[1.3] [&_h2]:text-zinc-900 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:leading-[1.3] [&_h3]:text-zinc-900 [&_li+li]:mt-1.5 [&_ol]:list-decimal [&_ol]:pl-6 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-[#111113] [&_pre]:p-4 [&_pre]:text-zinc-100 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_ul]:list-disc [&_ul]:pl-6 dark:text-zinc-300 dark:[&_a]:text-brand-400 dark:[&_blockquote]:text-zinc-400 dark:[&_code]:bg-zinc-800 dark:[&_h1]:text-zinc-100 dark:[&_h2]:text-zinc-100 dark:[&_h3]:text-zinc-100">{{ stream.description|render_markdown }}</div>
+        </section>
+      {% endif %}
+    </div>
 
-  <section class="mt-8 border-y border-zinc-200 py-6 dark:border-zinc-800" aria-labelledby="stream-metadata">
-    <h2 id="stream-metadata" class="mb-4 text-lg font-bold">{% translate "Signal" %}</h2>
-    {% include "catalog/partials.html#track_summary" with stream=stream only %}
-  </section>
+    <aside class="border-t border-zinc-300 pt-6 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-1 dark:border-zinc-800" aria-labelledby="stream-metadata">
+      <p class="mb-1 text-xs font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">{% translate "Stream details" %}</p>
+      <h2 id="stream-metadata" class="text-xl font-black text-zinc-950 dark:text-white">{% translate "Signal" %}</h2>
+      <div class="mt-5 text-zinc-600 dark:text-zinc-300">
+        {% if stream.tracks %}
+          {% include "catalog/partials.html#track_summary" with stream=stream only %}
+        {% else %}
+          <p class="text-sm text-zinc-500 dark:text-zinc-400">{% translate "No signal details are available." %}</p>
+        {% endif %}
+      </div>
+      <div class="mt-7 border-t border-zinc-300 pt-5 text-sm dark:border-zinc-800">
+        <p class="text-xs font-bold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">{% translate "Availability" %}</p>
+        <div class="mt-3">{% include "catalog/partials.html#status_badge" with stream=stream only %}</div>
+      </div>
+    </aside>
+  </div>
 {% endblock %}
 
 {% block scripts %}

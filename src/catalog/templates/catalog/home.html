@@ -1,46 +1,67 @@
 {% extends "catalog/base.html" %}
-{% load i18n %}
+{% load i18n static %}
 
 {% block title %}Streams{% endblock %}
 
 {% block content %}
-  <section class="mb-10 max-w-3xl">
-    <h1 class="bg-gradient-to-br from-brand-500 to-brand-400 bg-clip-text pb-[0.15em] text-4xl font-bold text-transparent sm:text-5xl">{% translate "Live channels" %}</h1>
-    <p class="mt-4 max-w-2xl text-base leading-7 text-zinc-600 dark:text-zinc-300">
-      {% translate "Select a channel to view its current availability and playback." %}
-    </p>
-  </section>
-
   {% if catalog.source.status != "fresh" %}
     {% include "catalog/partials.html#source_warning" with source=catalog.source only %}
   {% endif %}
 
-  <section aria-labelledby="stream-grid-title">
-    <div class="mb-5 flex items-end justify-between gap-4">
-      <h2 id="stream-grid-title" class="text-xl font-bold">{% translate "All channels" %}</h2>
-      <span class="text-sm text-zinc-500 dark:text-zinc-400">
-        {% blocktranslate count counter=catalog.streams|length %}{{ counter }} stream{% plural %}{{ counter }} streams{% endblocktranslate %}
-      </span>
-    </div>
-    <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-      {% for stream in catalog.streams %}
-        {% include "catalog/partials.html#stream_card" with stream=stream only %}
-      {% empty %}
-        <div class="border-y border-zinc-200 py-12 text-center dark:border-zinc-800">
-          <p class="font-semibold">{% translate "No streams yet." %}</p>
-          <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{% translate "Streams will appear after the next refresh." %}</p>
+  {% if catalog.streams %}
+    {% with featured=catalog.streams.0 %}
+      <section class="group relative isolate min-h-[23rem] overflow-hidden rounded-lg bg-zinc-950 sm:min-h-[30rem]" aria-labelledby="featured-stream-title">
+        <img src="{{ featured.thumbnail_url }}" alt="" class="absolute inset-0 size-full object-cover" width="1280" height="720" fetchpriority="high">
+        <div class="absolute inset-0 bg-[linear-gradient(90deg,rgba(9,9,11,0.96)_0%,rgba(9,9,11,0.72)_42%,rgba(9,9,11,0.08)_78%),linear-gradient(0deg,rgba(9,9,11,0.92)_0%,transparent_58%)]" aria-hidden="true"></div>
+        <a href="{{ featured.watch_url }}" class="absolute bottom-6 right-6 z-10 size-12 transition-transform duration-300 hover:scale-105 motion-reduce:transition-none sm:bottom-8 sm:right-8 sm:size-14" aria-label="{% translate 'Watch now' %}">
+          <img src="{% static 'catalog/thumbnails/play.svg' %}" alt="" class="size-full" width="48" height="48">
+        </a>
+        <div class="relative flex min-h-[23rem] max-w-2xl flex-col items-start justify-end p-6 sm:min-h-[30rem] sm:p-10 lg:p-12">
+          <p class="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-white/70">{% translate "Featured channel" %}</p>
+          <div class="mb-4">{% include "catalog/partials.html#status_badge" with stream=featured only %}</div>
+          <h1 id="featured-stream-title" class="max-w-full break-words text-4xl font-black leading-tight text-white sm:text-5xl">{{ featured.effective_name }}</h1>
+          {% if featured.tracks %}
+            <div class="mt-4 text-white/75">{% include "catalog/partials.html#track_summary" with stream=featured only %}</div>
+          {% endif %}
+          <a href="{{ featured.watch_url }}" class="mt-7 inline-flex items-center gap-2 rounded-md bg-white px-5 py-3 text-sm font-bold text-zinc-950 transition-colors hover:bg-brand-100 motion-reduce:transition-none">
+            {% translate "Watch now" %}
+          </a>
         </div>
-      {% endfor %}
-    </div>
-  </section>
+      </section>
+    {% endwith %}
 
-  <section class="mt-14 rounded-lg border border-brand-600/25 bg-gradient-to-br from-brand-600/10 to-brand-600/5 px-6 py-7">
+    <section class="mt-10 sm:mt-12" aria-labelledby="stream-grid-title">
+      <div class="mb-5 flex items-end justify-between gap-4">
+        <div>
+          <p class="mb-1 text-xs font-bold uppercase tracking-[0.14em] text-brand-600 dark:text-brand-400">{% translate "Browse" %}</p>
+          <h2 id="stream-grid-title" class="text-2xl font-black text-zinc-950 dark:text-white">{% translate "All channels" %}</h2>
+        </div>
+        <span class="text-sm text-zinc-500 dark:text-zinc-400">
+          {% blocktranslate count counter=catalog.streams|length %}{{ counter }} stream{% plural %}{{ counter }} streams{% endblocktranslate %}
+        </span>
+      </div>
+      <div class="grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {% for stream in catalog.streams %}
+          {% include "catalog/partials.html#stream_card" with stream=stream only %}
+        {% endfor %}
+      </div>
+    </section>
+  {% else %}
+    <section class="grid min-h-80 place-items-center border-y border-zinc-300 py-14 text-center dark:border-zinc-800">
+      <div>
+        <h1 class="text-3xl font-black text-zinc-950 dark:text-white">{% translate "Live channels" %}</h1>
+        <p class="mt-3 text-sm text-zinc-500 dark:text-zinc-400">{% translate "Streams will appear after the next refresh." %}</p>
+      </div>
+    </section>
+  {% endif %}
+
+  <section class="mt-14 border-y border-zinc-300 py-8 dark:border-zinc-800">
     <div class="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
       <div>
         <h2 class="text-lg font-bold">{% translate "Publish a stream" %}</h2>
         <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">{% translate "OBS and FFmpeg connection details are available in the publishing guide." %}</p>
       </div>
-      <a href="{% url 'catalog:tutorial' %}" class="rounded-md bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700">{% translate "Open guide" %}</a>
+      <a href="{% url 'catalog:tutorial' %}" class="rounded-md bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600 dark:bg-white dark:text-zinc-950 dark:hover:bg-brand-100">{% translate "Open guide" %}</a>
     </div>
   </section>
 {% endblock %}

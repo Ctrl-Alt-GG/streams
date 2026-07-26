@@ -28,9 +28,20 @@ class BlockedPath(models.Model):
 
 
 class Stream(models.Model):
+    class MediaKind(models.TextChoices):
+        UNKNOWN = "unknown", _("Unknown")
+        AUDIO = "audio", _("Audio")
+        VIDEO = "video", _("Video")
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
     path_name = models.CharField(max_length=512, unique=True, editable=False)
     display_name = models.CharField(max_length=200, blank=True)
+    media_kind = models.CharField(
+        max_length=7,
+        choices=MediaKind,
+        default=MediaKind.UNKNOWN,
+        editable=False,
+    )
     description = models.TextField(
         blank=True,
         help_text=_("Markdown is supported."),

@@ -8,7 +8,13 @@ from django.urls import reverse
 
 from catalog.models import BlockedPath, Stream
 from catalog.services.cache import get_poll_health, get_snapshot
+from catalog.services.media import media_kind_from_tracks
 from catalog.services.playback import build_hls_embed_url, build_hls_url
+from catalog.services.thumbnails import (
+    audio_thumbnail_url,
+    fallback_thumbnail_url,
+    offline_thumbnail_url,
+)
 
 _STREAM_EMOJIS = (
     "🎮",
@@ -49,10 +55,12 @@ class StreamProjection:
     status: str
     available: bool | None
     online: bool | None
+    audio_only: bool
     tracks: tuple[Track, ...]
     observed_at: str | None
     stale: bool
     watch_url: str
+    thumbnail_url: str
     hls_url: str | None
     hls_embed_url: str | None
 
@@ -152,12 +160,20 @@ class CatalogService:
             status = "unknown"
             available = None
             online = None
+            audio_only = False
             tracks = ()
         else:
             available = bool(path and path.get("available"))
             online = path.get("online") if path else False
             status = "live" if available else "offline"
             raw_tracks = (path or {}).get("tracks", [])
+            observed_media_kind = media_kind_from_tracks(raw_tracks)
+            media_kind = (
+                record.media_kind
+                if observed_media_kind == Stream.MediaKind.UNKNOWN
+                else observed_media_kind
+            )
+            audio_only = media_kind == Stream.MediaKind.AUDIO
             tracks = (
                 tuple(
                     Track(
@@ -175,6 +191,17 @@ class CatalogService:
             )
         watch_path = reverse("catalog:stream-detail", kwargs={"stream_id": record.id})
         watch_url = urljoin(f"{settings.PUBLIC_BASE_URL.rstrip('/')}/", watch_path.lstrip("/"))
+        if audio_only:
+            thumbnail_url = audio_thumbnail_url(record.path_name)
+        elif status == "live":
+            thumbnail_path = reverse("catalog:stream-thumbnail", kwargs={"stream_id": record.id})
+            thumbnail_url = urljoin(
+                f"{settings.PUBLIC_BASE_URL.rstrip('/')}/", thumbnail_path.lstrip("/")
+            )
+        elif status == "offline":
+            thumbnail_url = offline_thumbnail_url()
+        else:
+            thumbnail_url = fallback_thumbnail_url(record.path_name)
         return StreamProjection(
             id=str(record.id),
             path_name=record.path_name,
@@ -184,10 +211,12 @@ class CatalogService:
             status=status,
             available=available,
             online=online,
+            audio_only=audio_only,
             tracks=tracks,
             observed_at=source.observed_at,
             stale=source.status != "fresh",
             watch_url=watch_url,
+            thumbnail_url=thumbnail_url,
             hls_url=build_hls_url(record.path_name) if status == "live" else None,
             hls_embed_url=build_hls_embed_url(record.path_name) if status == "live" else None,
         )

@@ -14,35 +14,31 @@
     <link rel="stylesheet" href="{% static 'catalog/css/app.css' %}">
     {% block head %}{% endblock %}
   </head>
-  <body class="min-h-screen min-w-80 bg-zinc-50 font-sans text-zinc-900 antialiased dark:bg-zinc-900 dark:text-zinc-200 [&_:focus-visible]:outline-[3px] [&_:focus-visible]:outline-brand-500 [&_:focus-visible]:outline-offset-[3px]">
-    <div class="h-1 bg-brand-600" aria-hidden="true"></div>
-    <header class="border-b border-white/20 bg-gradient-to-br from-brand-800 to-brand-700 pb-3 pt-5 text-white shadow-sm dark:from-[#130404] dark:to-[#1e0606]">
-      <div class="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 xl:px-12">
-        <a href="{% url 'catalog:home' %}" class="flex items-center justify-center gap-3 no-underline transition-opacity hover:opacity-85 motion-reduce:transition-none" aria-label="{% translate 'Ctrl-Alt-GG Streams home' %}">
-          <img src="{% static 'catalog/ctrl-alt-gg-mark.svg' %}" alt="" class="h-8 w-auto sm:h-10" width="54" height="40">
-          <span class="text-lg font-bold text-white sm:text-xl">Ctrl-Alt-GG Streams</span>
+  <body class="min-h-screen min-w-80 bg-[linear-gradient(to_bottom,#fafafa_0,#f4f4f5_26rem)] font-sans text-zinc-900 antialiased dark:bg-[linear-gradient(to_bottom,#111113_0,#09090b_26rem)] dark:text-zinc-200 [&_:focus-visible]:outline-[3px] [&_:focus-visible]:outline-brand-500 [&_:focus-visible]:outline-offset-[3px]">
+    <header class="sticky top-0 z-50 border-b border-white/10 bg-[#111113]/95 text-white shadow-sm backdrop-blur-md">
+      <div class="mx-auto flex h-16 w-full max-w-[90rem] items-center gap-1 px-4 sm:gap-5 sm:px-6 lg:px-8">
+        <a href="{% url 'catalog:home' %}" class="mr-auto flex shrink-0 items-center gap-1.5 no-underline transition-opacity hover:opacity-80 motion-reduce:transition-none sm:gap-2.5" aria-label="{% translate 'Ctrl-Alt-GG Streams home' %}">
+          <img src="{% static 'catalog/ctrl-alt-gg-mark.svg' %}" alt="" class="h-7 w-auto sm:h-8" width="43" height="32">
+          <span class="hidden text-base font-black text-white sm:inline">Ctrl-Alt-GG Streams</span>
         </a>
-        <div class="relative mt-4 flex flex-col items-center gap-2 sm:min-h-9 sm:justify-center">
-          <nav aria-label="{% translate 'Primary navigation' %}" class="flex flex-wrap items-center justify-center text-sm tracking-[0.04em]">
-            <a href="{% url 'catalog:home' %}" {% if request.resolver_match.url_name == "home" %}aria-current="page"{% endif %} class="block rounded-md px-3 py-2 font-normal text-white/75 no-underline transition-colors hover:bg-white/15 hover:text-white motion-reduce:transition-none aria-[current=page]:bg-white/20 aria-[current=page]:font-semibold aria-[current=page]:text-white">{% translate "Watch" %}</a>
-            <a href="{% url 'catalog:tutorial' %}" {% if request.resolver_match.url_name == "tutorial" %}aria-current="page"{% endif %} class="block rounded-md px-3 py-2 font-normal text-white/75 no-underline transition-colors hover:bg-white/15 hover:text-white motion-reduce:transition-none aria-[current=page]:bg-white/20 aria-[current=page]:font-semibold aria-[current=page]:text-white">{% translate "Publish" %}</a>
-            {% if request.user.is_staff %}
-              <a href="{% url 'admin:index' %}" class="block rounded-md px-3 py-2 font-normal text-white/75 no-underline transition-colors hover:bg-white/15 hover:text-white motion-reduce:transition-none">{% translate "Admin" %}</a>
-            {% endif %}
-          </nav>
-          <form action="{% url 'set_language' %}" method="post" class="flex items-center gap-1 text-xs tracking-wide sm:absolute sm:right-0" aria-label="{% translate 'Language' %}">
-            {% csrf_token %}
-            <input name="next" type="hidden" value="{{ request.get_full_path }}">
-            {% for language in languages %}
-              {% if not forloop.first %}<span class="text-white/30" aria-hidden="true">·</span>{% endif %}
-              <button type="submit" name="language" value="{{ language.code }}" lang="{{ language.code }}" {% if language.code == LANGUAGE_CODE %}aria-current="page"{% endif %} class="cursor-pointer rounded border-0 bg-transparent px-1.5 py-1 text-white/55 transition-colors hover:text-white motion-reduce:transition-none aria-[current=page]:font-bold aria-[current=page]:text-white">{{ language.name_local }}</button>
-            {% endfor %}
-          </form>
-        </div>
+        <nav aria-label="{% translate 'Primary navigation' %}" class="flex h-full items-center text-sm">
+          <a href="{% url 'catalog:home' %}" {% if request.resolver_match.url_name == "home" or request.resolver_match.url_name == "stream-detail" %}aria-current="page"{% endif %} class="relative grid h-full place-items-center px-1.5 font-semibold text-white/65 no-underline transition-colors after:absolute after:inset-x-1.5 after:bottom-0 after:h-0.5 after:scale-x-0 after:bg-brand-500 after:transition-transform hover:text-white motion-reduce:transition-none motion-reduce:after:transition-none aria-[current=page]:text-white aria-[current=page]:after:scale-x-100 sm:px-3.5 sm:after:inset-x-3.5">{% translate "Watch" %}</a>
+          <a href="{% url 'catalog:tutorial' %}" {% if request.resolver_match.url_name == "tutorial" %}aria-current="page"{% endif %} class="relative grid h-full place-items-center px-1.5 font-semibold text-white/65 no-underline transition-colors after:absolute after:inset-x-1.5 after:bottom-0 after:h-0.5 after:scale-x-0 after:bg-brand-500 after:transition-transform hover:text-white motion-reduce:transition-none motion-reduce:after:transition-none aria-[current=page]:text-white aria-[current=page]:after:scale-x-100 sm:px-3.5 sm:after:inset-x-3.5">{% translate "Publish" %}</a>
+          {% if request.user.is_staff %}
+            <a href="{% url 'admin:index' %}" class="hidden h-full place-items-center px-3.5 font-semibold text-white/65 no-underline transition-colors hover:text-white sm:grid">{% translate "Admin" %}</a>
+          {% endif %}
+        </nav>
+        <form action="{% url 'set_language' %}" method="post" class="flex shrink-0 items-center gap-0.5 border-l border-white/15 pl-1 text-[0.68rem] font-bold uppercase tracking-[0.08em] sm:ml-2 sm:pl-3" aria-label="{% translate 'Language' %}">
+          {% csrf_token %}
+          <input name="next" type="hidden" value="{{ request.get_full_path }}">
+          {% for language in languages %}
+            <button type="submit" name="language" value="{{ language.code }}" lang="{{ language.code }}" title="{{ language.name_local }}" {% if language.code == LANGUAGE_CODE %}aria-current="page"{% endif %} class="cursor-pointer rounded-sm border-0 bg-transparent px-1 py-1.5 text-white/45 transition-colors hover:text-white motion-reduce:transition-none aria-[current=page]:bg-white/10 aria-[current=page]:text-white sm:px-1.5">{{ language.code }}</button>
+          {% endfor %}
+        </form>
       </div>
     </header>
 
-    <main id="main-content" class="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8 xl:px-12">
+    <main id="main-content" class="mx-auto w-full max-w-[90rem] px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
       {% block content %}{% endblock %}
     </main>
     {% block scripts %}{% endblock %}

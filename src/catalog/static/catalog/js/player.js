@@ -1,12 +1,14 @@
 (() => {
-  const video = document.querySelector("[data-hls-player]");
+  const media = document.querySelector("[data-hls-player]");
   const message = document.querySelector("[data-player-message]");
-  if (!video || !message) {
+  const startButton = document.querySelector("[data-audio-start]");
+  if (!media || !message) {
     return;
   }
 
   let player = null;
   let retryTimer = null;
+  let playbackRequested = false;
 
   const showMessage = (text) => {
     message.textContent = text;
@@ -19,13 +21,17 @@
     message.classList.remove("grid");
   };
 
-  const startPlayback = () => {
+  const handleMediaReady = () => {
     hideMessage();
-    video.play().catch(() => {});
+    startButton?.classList.add("hidden");
+    media.classList.remove("hidden");
+    if (media.autoplay || playbackRequested) {
+      media.play().catch(() => {});
+    }
   };
 
   const scheduleRetry = () => {
-    showMessage(video.dataset.retryMessage);
+    showMessage(media.dataset.retryMessage);
     window.clearTimeout(retryTimer);
     retryTimer = window.setTimeout(loadStream, 2000);
   };
@@ -43,20 +49,20 @@
         player = null;
         scheduleRetry();
       });
-      player.on(window.Hls.Events.MANIFEST_PARSED, startPlayback);
-      player.loadSource(video.dataset.source);
-      player.attachMedia(video);
+      player.on(window.Hls.Events.MANIFEST_PARSED, handleMediaReady);
+      player.loadSource(media.dataset.source);
+      player.attachMedia(media);
       return;
     }
 
-    if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = video.dataset.source;
-      video.addEventListener("loadedmetadata", startPlayback, { once: true });
-      video.addEventListener("error", scheduleRetry, { once: true });
+    if (media.canPlayType("application/vnd.apple.mpegurl")) {
+      media.src = media.dataset.source;
+      media.addEventListener("loadedmetadata", handleMediaReady, { once: true });
+      media.addEventListener("error", scheduleRetry, { once: true });
       return;
     }
 
-    showMessage(video.dataset.unsupportedMessage);
+    showMessage(media.dataset.unsupportedMessage);
   };
 
   window.addEventListener(
@@ -68,5 +74,17 @@
     { once: true },
   );
 
-  loadStream();
+  if (startButton) {
+    startButton.addEventListener(
+      "click",
+      () => {
+        startButton.disabled = true;
+        playbackRequested = true;
+        loadStream();
+      },
+      { once: true },
+    );
+  } else {
+    loadStream();
+  }
 })();

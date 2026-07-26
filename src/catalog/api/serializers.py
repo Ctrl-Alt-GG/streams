@@ -22,10 +22,12 @@ class StreamSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=("live", "offline", "unknown"))
     available = serializers.BooleanField(allow_null=True)
     online = serializers.BooleanField(allow_null=True)
+    audio_only = serializers.BooleanField()
     tracks = TrackSerializer(many=True)
     observed_at = serializers.CharField(allow_null=True)
     stale = serializers.BooleanField()
     watch_url = serializers.URLField()
+    thumbnail_url = serializers.URLField()
     hls_url = serializers.URLField(allow_null=True)
 
 

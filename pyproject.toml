@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.14,<3.15"
 license = "GPL-3.0-only"
 dependencies = [
+    "av>=18.0.0",
     "celery>=5.6.3,<5.7",
     "django>=6.0.7,<6.1",
     "django-environ>=0.14,<0.15",
@@ -19,6 +20,7 @@ dependencies = [
     "gunicorn>=26.0.0,<27",
     "httpx[http2]>=0.28.1,<0.29",
     "markdown-it-py>=4.2.0,<5",
+    "pillow>=12.3.0",
     "psycopg[binary]>=3.3.4,<3.4",
     "pydantic>=2.13.4,<3",
 ]
