@@ -1,7 +1,7 @@
 from django.conf import settings
-from django.http import Http404, HttpResponse, HttpResponseNotModified
+from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
-from django.utils.cache import patch_cache_control
+from django.utils.cache import get_conditional_response, patch_cache_control
 from django.views.decorators.http import require_safe
 
 from catalog.guides import get_publishing_configuration
@@ -46,14 +46,11 @@ def stream_thumbnail(request, stream_id):
     max_age = min(30, settings.STREAM_THUMBNAIL_REFRESH_SECONDS)
 
     quoted_etag = f'"{etag}"'
-    if request.headers.get("If-None-Match") == quoted_etag:
-        response = HttpResponseNotModified()
-    else:
-        response = HttpResponse(content, content_type=content_type)
+    response = HttpResponse(content, content_type=content_type)
     response.headers["ETag"] = quoted_etag
     response.headers["X-Content-Type-Options"] = "nosniff"
     patch_cache_control(response, public=True, max_age=max_age)
-    return response
+    return get_conditional_response(request, etag=quoted_etag, response=response)
 
 
 @require_safe

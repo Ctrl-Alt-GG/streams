@@ -186,7 +186,10 @@ def refresh_stream_thumbnail(stream_id: str) -> str:
     except Stream.DoesNotExist:
         return "missing"
 
-    desired_kind = _desired_thumbnail_kind(get_snapshot(), stream.path_name, stream.media_kind)
+    snapshot = get_snapshot()
+    if snapshot is None:
+        return "retained" if get_thumbnail(stream.id) is not None else "fallback"
+    desired_kind = _desired_thumbnail_kind(snapshot, stream.path_name, stream.media_kind)
     if desired_kind != "frame":
         delete_thumbnail(stream.id)
         return desired_kind
@@ -196,7 +199,10 @@ def refresh_stream_thumbnail(stream_id: str) -> str:
     with thumbnail_lock(stream.id) as acquired:
         if not acquired:
             return "locked"
-        desired_kind = _desired_thumbnail_kind(get_snapshot(), stream.path_name, stream.media_kind)
+        snapshot = get_snapshot()
+        if snapshot is None:
+            return "retained" if get_thumbnail(stream.id) is not None else "fallback"
+        desired_kind = _desired_thumbnail_kind(snapshot, stream.path_name, stream.media_kind)
         if desired_kind != "frame":
             delete_thumbnail(stream.id)
             return desired_kind
@@ -214,10 +220,9 @@ def refresh_stream_thumbnail(stream_id: str) -> str:
                 type(error).__name__,
             )
         else:
-            desired_kind = _desired_thumbnail_kind(
-                get_snapshot(), stream.path_name, stream.media_kind
-            )
-            if desired_kind != "frame":
+            snapshot = get_snapshot()
+            desired_kind = _desired_thumbnail_kind(snapshot, stream.path_name, stream.media_kind)
+            if snapshot is not None and desired_kind != "frame":
                 delete_thumbnail(stream.id)
                 return desired_kind
             write_thumbnail(stream.id, content)
@@ -234,6 +239,8 @@ def refresh_stream_thumbnail(stream_id: str) -> str:
 )
 def refresh_stream_thumbnails() -> str:
     snapshot = get_snapshot()
+    if snapshot is None:
+        return "queued:0"
     queued = 0
     for stream in Stream.objects.only("id", "path_name", "media_kind").iterator():
         desired_kind = _desired_thumbnail_kind(snapshot, stream.path_name, stream.media_kind)
