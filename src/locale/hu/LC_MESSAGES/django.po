@@ -174,7 +174,7 @@ msgid "This station is offline"
 msgstr "Ez az állomás nem érhető el"
 
 msgid "Listening will resume when the station returns."
-msgstr "A hallgatás folytatható, amikor az állomás visszatér."
+msgstr "A lejátszás akkor folytatódik, amikor az állomás újra elérhető lesz."
 
 #, python-format
 msgid "%(name)s player"
