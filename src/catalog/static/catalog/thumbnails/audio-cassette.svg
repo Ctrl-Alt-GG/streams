@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#40275e"/>
+      <stop offset="0.5" stop-color="#b64a67"/>
+      <stop offset="1" stop-color="#ef9b58"/>
+    </linearGradient>
+    <pattern id="stripes" width="24" height="24" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+      <rect width="8" height="24" fill="#fff" fill-opacity="0.05"/>
+    </pattern>
+  </defs>
+  <rect width="640" height="360" fill="url(#background)"/>
+  <rect width="640" height="360" fill="url(#stripes)"/>
+  <rect x="128" y="64" width="384" height="232" rx="24" fill="#f8dfbf" fill-opacity="0.92" stroke="#381d3f" stroke-opacity="0.5" stroke-width="5"/>
+  <rect x="162" y="95" width="316" height="116" rx="12" fill="#392b45"/>
+  <circle cx="236" cy="153" r="43" fill="#eadac7"/>
+  <circle cx="404" cy="153" r="43" fill="#eadac7"/>
+  <g fill="#4a3653">
+    <circle cx="236" cy="153" r="13"/>
+    <circle cx="404" cy="153" r="13"/>
+  </g>
+  <path d="M250 153h140" stroke="#e6a74d" stroke-width="8"/>
+  <path d="m199 245 32-22h178l32 22 18 35H181Z" fill="#684466"/>
+  <g fill="#f8dfbf">
+    <circle cx="240" cy="254" r="7"/>
+    <circle cx="400" cy="254" r="7"/>
+  </g>
+</svg>

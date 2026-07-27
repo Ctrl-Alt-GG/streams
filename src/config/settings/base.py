@@ -114,6 +114,9 @@ MEDIAMTX_API_READ_TIMEOUT = env.float("MEDIAMTX_API_READ_TIMEOUT", default=5.0)
 MEDIAMTX_HLS_PUBLIC_BASE_URL = env(
     "MEDIAMTX_HLS_PUBLIC_BASE_URL", default="https://streams.invalid/hls/"
 )
+MEDIAMTX_HLS_CAPTURE_BASE_URL = env(
+    "MEDIAMTX_HLS_CAPTURE_BASE_URL", default=MEDIAMTX_HLS_PUBLIC_BASE_URL
+)
 MEDIAMTX_RTMP_PUBLIC_BASE_URL = env(
     "MEDIAMTX_RTMP_PUBLIC_BASE_URL", default="rtmps://streams.invalid"
 )
@@ -121,6 +124,14 @@ MEDIAMTX_RECONCILE_INTERVAL_SECONDS = 10
 MEDIAMTX_RECONCILE_LOCK_SECONDS = 15
 MEDIAMTX_FRESHNESS_SECONDS = 15
 MEDIAMTX_SNAPSHOT_RETENTION_SECONDS = env.int("MEDIAMTX_SNAPSHOT_RETENTION_SECONDS", default=3_600)
+STREAM_THUMBNAIL_CAPTURE_TIMEOUT_SECONDS = env.float(
+    "STREAM_THUMBNAIL_CAPTURE_TIMEOUT_SECONDS", default=5.0
+)
+STREAM_THUMBNAIL_REFRESH_SECONDS = env.int("STREAM_THUMBNAIL_REFRESH_SECONDS", default=60)
+STREAM_THUMBNAIL_CACHE_SECONDS = env.int("STREAM_THUMBNAIL_CACHE_SECONDS", default=604_800)
+STREAM_THUMBNAIL_LOCK_SECONDS = 8
+STREAM_THUMBNAIL_SCAN_SECONDS = 15
+STREAM_THUMBNAIL_TASK_EXPIRES_SECONDS = 14
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
@@ -197,7 +208,11 @@ CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_WORKER_DETECT_QUORUM_QUEUES = True
 CELERY_WORKER_ENABLE_REMOTE_CONTROL = False
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
-CELERY_TASK_ROUTES = {"catalog.tasks.refresh_mediamtx_snapshot": {"queue": "mediamtx-quorum"}}
+CELERY_TASK_ROUTES = {
+    "catalog.tasks.refresh_mediamtx_snapshot": {"queue": "mediamtx-quorum"},
+    "catalog.tasks.refresh_stream_thumbnail": {"queue": "mediamtx-quorum"},
+    "catalog.tasks.refresh_stream_thumbnails": {"queue": "mediamtx-quorum"},
+}
 CELERY_TASK_SOFT_TIME_LIMIT = 7
 CELERY_TASK_TIME_LIMIT = 9
 CELERY_BEAT_SCHEDULE = {
@@ -205,5 +220,13 @@ CELERY_BEAT_SCHEDULE = {
         "task": "catalog.tasks.refresh_mediamtx_snapshot",
         "schedule": MEDIAMTX_RECONCILE_INTERVAL_SECONDS,
         "options": {"expires": 9.0, "queue": "mediamtx-quorum"},
-    }
+    },
+    "refresh-stream-thumbnails": {
+        "task": "catalog.tasks.refresh_stream_thumbnails",
+        "schedule": STREAM_THUMBNAIL_SCAN_SECONDS,
+        "options": {
+            "expires": STREAM_THUMBNAIL_TASK_EXPIRES_SECONDS,
+            "queue": "mediamtx-quorum",
+        },
+    },
 }

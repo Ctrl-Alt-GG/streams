@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <defs>
+    <linearGradient id="background" x1="0" y1="1" x2="1" y2="0">
+      <stop stop-color="#142553"/>
+      <stop offset="0.5" stop-color="#475bb6"/>
+      <stop offset="1" stop-color="#d665b0"/>
+    </linearGradient>
+    <radialGradient id="glow">
+      <stop stop-color="#f4d9ff" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#f4d9ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#background)"/>
+  <circle cx="320" cy="180" r="230" fill="url(#glow)"/>
+  <g fill="none" stroke="#f9edff" stroke-opacity="0.18">
+    <circle cx="320" cy="180" r="54"/>
+    <circle cx="320" cy="180" r="96"/>
+    <circle cx="320" cy="180" r="138"/>
+    <circle cx="320" cy="180" r="180"/>
+  </g>
+  <path d="M188 190v-24a132 132 0 0 1 264 0v24" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="22"/>
+  <rect x="160" y="166" width="72" height="124" rx="31" fill="#171a3d" stroke="#f8eaff" stroke-width="8"/>
+  <rect x="408" y="166" width="72" height="124" rx="31" fill="#171a3d" stroke="#f8eaff" stroke-width="8"/>
+  <path d="M180 213h32M428 213h32" stroke="#d665b0" stroke-linecap="round" stroke-width="7"/>
+</svg>

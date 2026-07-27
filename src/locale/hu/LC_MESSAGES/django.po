@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Streams\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-25 17:27+0000\n"
+"POT-Creation-Date: 2026-07-26 00:00+0000\n"
 "PO-Revision-Date: 2026-07-25 00:00+0000\n"
 "Last-Translator: Ctrl-Alt-GG\n"
 "Language-Team: Hungarian\n"
@@ -84,10 +84,17 @@ msgstr "Nyelv"
 msgid "Live channels"
 msgstr "Élő csatornák"
 
+msgid "Featured channel"
+msgstr "Kiemelt csatorna"
+
+msgid "Watch now"
+msgstr "Megnézem"
+
+msgid "Browse"
+msgstr "Böngészés"
+
 msgid "Select a channel to view its current availability and playback."
-msgstr ""
-"Válassz egy csatornát az aktuális elérhetőségének és lejátszásának "
-"megtekintéséhez."
+msgstr "Válassz egy csatornát az aktuális állapot megtekintéséhez és a lejátszáshoz."
 
 msgid "All channels"
 msgstr "Összes csatorna"
@@ -142,8 +149,32 @@ msgstr "Morzsanavigáció"
 msgid "Channel"
 msgstr "Csatorna"
 
+msgid "Station"
+msgstr "Állomás"
+
 msgid "Player"
 msgstr "Lejátszó"
+
+msgid "Radio player"
+msgstr "Rádiólejátszó"
+
+msgid "On air"
+msgstr "Adásban"
+
+msgid "Off air"
+msgstr "Adásszünet"
+
+msgid "Live audio stream"
+msgstr "Élő hangközvetítés"
+
+msgid "Listen live"
+msgstr "Élő adás hallgatása"
+
+msgid "This station is offline"
+msgstr "Ez az állomás nem érhető el"
+
+msgid "Listening will resume when the station returns."
+msgstr "A lejátszás akkor folytatódik, amikor az állomás újra elérhető lesz."
 
 #, python-format
 msgid "%(name)s player"
@@ -171,6 +202,15 @@ msgstr "A közvetítésről"
 
 msgid "Signal"
 msgstr "Jel"
+
+msgid "Stream details"
+msgstr "Közvetítés részletei"
+
+msgid "No signal details are available."
+msgstr "Nem érhetők el jeladatok."
+
+msgid "Availability"
+msgstr "Elérhetőség"
 
 msgid "Publishing guide"
 msgstr "Közvetítési útmutató"

@@ -14,6 +14,7 @@
 }
 
 @theme {
+  --font-sans: "Aptos", "Trebuchet MS", sans-serif;
   --color-brand-100: #ffd9d9;
   --color-brand-300: #ff7676;
   --color-brand-400: #f14848;

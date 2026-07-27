@@ -22,3 +22,8 @@ def build_hls_embed_url(path_name: str) -> str:
 
 def build_hls_url(path_name: str) -> str:
     return f"{build_hls_embed_url(path_name)}/index.m3u8"
+
+
+def build_hls_capture_url(path_name: str) -> str:
+    base_url = settings.MEDIAMTX_HLS_CAPTURE_BASE_URL.rstrip("/")
+    return f"{base_url}/{encode_path(path_name)}/index.m3u8"
