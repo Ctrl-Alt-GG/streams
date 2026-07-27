@@ -94,9 +94,7 @@ msgid "Browse"
 msgstr "Böngészés"
 
 msgid "Select a channel to view its current availability and playback."
-msgstr ""
-"Válassz egy csatornát az aktuális elérhetőségének és lejátszásának "
-"megtekintéséhez."
+msgstr "Válassz egy csatornát az aktuális állapot megtekintéséhez és a lejátszáshoz."
 
 msgid "All channels"
 msgstr "Összes csatorna"
