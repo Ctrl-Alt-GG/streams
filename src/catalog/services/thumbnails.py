@@ -229,6 +229,7 @@ def _static_asset_url(asset_name: str) -> str:
         asset_url = asset_url.lstrip("/")
     return urljoin(f"{settings.PUBLIC_BASE_URL.rstrip('/')}/", asset_url)
 
+
 @functools.cache
 def _read_static_asset(asset_name: str) -> bytes:
     asset_path = finders.find(asset_name)
