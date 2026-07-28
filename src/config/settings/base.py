@@ -165,7 +165,7 @@ SECURE_CSP = {
     "base-uri": [CSP.SELF],
     "form-action": [CSP.SELF],
     "frame-ancestors": [CSP.SELF],
-    "frame-src": [CSP.SELF],
+    "frame-src": [CSP.SELF, *([hls_origin] if hls_origin else [])],
     "object-src": [CSP.NONE],
     "script-src": [
         CSP.SELF,

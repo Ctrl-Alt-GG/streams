@@ -77,21 +77,15 @@
       {% else %}
         <section aria-label="{% translate 'Player' %}" class="aspect-video w-full overflow-hidden rounded-md bg-black shadow-2xl ring-1 ring-black/20 dark:ring-white/10">
         {% if stream.status == "live" %}
-          <div class="relative size-full bg-black">
-            <video
-              class="size-full bg-black object-contain"
-              data-hls-player
-              data-source="{{ stream.hls_url }}"
-              data-retry-message="{% translate 'Playback could not start. Retrying...' %}"
-              data-unsupported-message="{% translate 'This browser cannot play this stream.' %}"
-              poster="{{ stream.thumbnail_url }}"
-              controls
-              muted
-              autoplay
-              playsinline
-            ></video>
-            <p data-player-message class="pointer-events-none absolute inset-0 hidden place-items-center bg-black/70 p-6 text-center text-sm font-semibold text-white"></p>
-          </div>
+          <iframe
+            class="size-full border-0 bg-black"
+            src="{{ stream.hls_embed_url }}/?controls=true&amp;muted=true&amp;autoplay=true&amp;playsinline=true"
+            title="{% translate 'Player' %}: {{ stream.effective_name }}"
+            allow="autoplay; fullscreen; picture-in-picture"
+            referrerpolicy="no-referrer"
+            scrolling="no"
+            allowfullscreen
+          ></iframe>
         {% else %}
           <div class="relative grid size-full place-items-center overflow-hidden p-8 text-center">
             <img src="{{ stream.thumbnail_url }}" alt="" class="absolute inset-0 size-full scale-105 object-cover opacity-35 blur-sm" width="1280" height="720">
@@ -132,7 +126,7 @@
 {% endblock %}
 
 {% block scripts %}
-  {% if stream.status == "live" %}
+  {% if stream.status == "live" and stream.audio_only %}
     <script src="{{ stream.hls_embed_url }}/hls.min.js" referrerpolicy="no-referrer" defer></script>
     <script src="{% static 'catalog/js/player.js' %}" defer></script>
   {% endif %}
