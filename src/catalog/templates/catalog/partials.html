@@ -31,7 +31,7 @@
   <article class="group min-w-0">
     <a href="{{ stream.watch_url }}" class="block text-inherit no-underline">
       <div class="relative aspect-video overflow-hidden rounded-md bg-zinc-900 shadow-sm ring-1 ring-black/10 transition-[transform,box-shadow] duration-300 group-hover:-translate-y-1 group-hover:shadow-xl motion-reduce:transform-none motion-reduce:transition-none dark:ring-white/10">
-        <img src="{{ stream.thumbnail_url }}" alt="" class="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03] motion-reduce:transform-none motion-reduce:transition-none" width="640" height="360" loading="lazy">
+        <img src="{{ stream.thumbnail_url }}" alt="" class="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03] motion-reduce:transform-none motion-reduce:transition-none" width="640" height="360">
         <div class="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/10" aria-hidden="true"></div>
         <div class="absolute left-3 top-3">{% partial status_badge %}</div>
         <img src="{% static 'catalog/thumbnails/play.svg' %}" alt="" class="pointer-events-none absolute bottom-3 right-3 size-10 opacity-95 shadow-lg transition-transform duration-300 group-hover:scale-110 motion-reduce:transition-none" width="40" height="40" aria-hidden="true">

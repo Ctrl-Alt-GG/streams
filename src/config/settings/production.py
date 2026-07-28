@@ -37,7 +37,7 @@ STATIC_URL = MINIO_STATIC_PUBLIC_URL
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {
-        "BACKEND": "storages.backends.s3.S3ManifestStaticStorage",
+        "BACKEND": "config.storage.HashedS3ManifestStaticStorage",
         "OPTIONS": {
             "access_key": MINIO_STATIC_ACCESS_KEY,
             "secret_key": MINIO_STATIC_SECRET_KEY,

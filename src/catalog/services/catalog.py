@@ -86,7 +86,7 @@ class CatalogProjection:
 
 
 class CatalogService:
-    def list(self) -> CatalogProjection:
+    def list(self, *, public_urls: bool = True) -> CatalogProjection:
         snapshot = get_snapshot()
         health = get_poll_health() or {}
         source, usable_snapshot = self._source(snapshot, health)
@@ -94,11 +94,16 @@ class CatalogService:
         records = Stream.objects.exclude(path_name__in=blocked_paths)
         if usable_snapshot is not None:
             records = records.filter(path_name__in=usable_snapshot.get("paths", {}))
-        streams = tuple(self._project(record, usable_snapshot, source) for record in records)
+        streams = tuple(
+            self._project(record, usable_snapshot, source, public_urls=public_urls)
+            for record in records
+        )
         return CatalogProjection(source=source, streams=tuple(sorted(streams, key=self._sort_key)))
 
-    def get(self, stream_id) -> tuple[SourceProjection, StreamProjection]:
-        catalog = self.list()
+    def get(
+        self, stream_id, *, public_urls: bool = True
+    ) -> tuple[SourceProjection, StreamProjection]:
+        catalog = self.list(public_urls=public_urls)
         for stream in catalog.streams:
             if stream.id == str(stream_id):
                 return catalog.source, stream
@@ -152,7 +157,12 @@ class CatalogService:
         )
 
     def _project(
-        self, record: Stream, snapshot: dict | None, source: SourceProjection
+        self,
+        record: Stream,
+        snapshot: dict | None,
+        source: SourceProjection,
+        *,
+        public_urls: bool,
     ) -> StreamProjection:
         path_data = snapshot.get("paths", {}).get(record.path_name) if snapshot else None
         path = path_data if isinstance(path_data, dict) else None
@@ -190,14 +200,12 @@ class CatalogService:
                 else ()
             )
         watch_path = reverse("catalog:stream-detail", kwargs={"stream_id": record.id})
-        watch_url = urljoin(f"{settings.PUBLIC_BASE_URL.rstrip('/')}/", watch_path.lstrip("/"))
+        watch_url = self._catalog_url(watch_path, public=public_urls)
         if audio_only:
             thumbnail_url = audio_thumbnail_url(record.path_name)
         elif status == "live":
             thumbnail_path = reverse("catalog:stream-thumbnail", kwargs={"stream_id": record.id})
-            thumbnail_url = urljoin(
-                f"{settings.PUBLIC_BASE_URL.rstrip('/')}/", thumbnail_path.lstrip("/")
-            )
+            thumbnail_url = self._catalog_url(thumbnail_path, public=public_urls)
         elif status == "offline":
             thumbnail_url = offline_thumbnail_url()
         else:
@@ -220,6 +228,12 @@ class CatalogService:
             hls_url=build_hls_url(record.path_name) if status == "live" else None,
             hls_embed_url=build_hls_embed_url(record.path_name) if status == "live" else None,
         )
+
+    @staticmethod
+    def _catalog_url(path: str, *, public: bool) -> str:
+        if not public:
+            return path
+        return urljoin(f"{settings.PUBLIC_BASE_URL.rstrip('/')}/", path.lstrip("/"))
 
     @staticmethod
     def _sort_key(stream: StreamProjection) -> tuple:

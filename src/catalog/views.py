@@ -12,13 +12,17 @@ from catalog.services.thumbnails import audio_thumbnail_url, fallback_thumbnail_
 
 @require_safe
 def home(request):
-    return render(request, "catalog/home.html", {"catalog": CatalogService().list()})
+    return render(
+        request,
+        "catalog/home.html",
+        {"catalog": CatalogService().list(public_urls=False)},
+    )
 
 
 @require_safe
 def stream_detail(request, stream_id):
     try:
-        source, stream = CatalogService().get(stream_id)
+        source, stream = CatalogService().get(stream_id, public_urls=False)
     except Stream.DoesNotExist as error:
         raise Http404 from error
     return render(request, "catalog/stream_detail.html", {"source": source, "stream": stream})

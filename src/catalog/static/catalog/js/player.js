@@ -9,6 +9,7 @@
   let player = null;
   let retryTimer = null;
   let playbackRequested = false;
+  let videoOnlyFallbackAttempted = false;
 
   const showMessage = (text) => {
     message.textContent = text;
@@ -19,6 +20,22 @@
   const hideMessage = () => {
     message.classList.add("hidden");
     message.classList.remove("grid");
+  };
+
+  const originScopedRequest = (playbackToken) => (xhr, url) => {
+    const requestUrl = new URL(url, window.location.href);
+    requestUrl.searchParams.set("_streams_origin", window.location.origin);
+    if (requestUrl.pathname.endsWith("/index.m3u8")) {
+      requestUrl.searchParams.set("cookieCheck", "1");
+      requestUrl.searchParams.set("_streams_playback", playbackToken);
+    }
+    xhr.open("GET", requestUrl.href, true);
+  };
+
+  const videoOnlySource = () => {
+    const level = player?.levels[player.currentLevel >= 0 ? player.currentLevel : 0];
+    const url = Array.isArray(level?.url) ? level.url[level.urlId ?? 0] : level?.url;
+    return typeof url === "string" ? url : null;
   };
 
   const handleMediaReady = () => {
@@ -36,21 +53,34 @@
     retryTimer = window.setTimeout(loadStream, 2000);
   };
 
-  const loadStream = () => {
+  const loadStream = (source = media.dataset.source) => {
     retryTimer = null;
 
     if (window.Hls?.isSupported()) {
-      player = new window.Hls({ maxLiveSyncPlaybackRate: 1.5 });
+      const playbackToken = window.crypto.randomUUID();
+      player = new window.Hls({
+        maxLiveSyncPlaybackRate: 1.5,
+        xhrSetup: originScopedRequest(playbackToken),
+      });
       player.on(window.Hls.Events.ERROR, (_event, data) => {
         if (!data.fatal) {
           return;
         }
+        const fallbackSource =
+          data.type === window.Hls.ErrorTypes.MEDIA_ERROR && !videoOnlyFallbackAttempted
+            ? videoOnlySource()
+            : null;
         player.destroy();
         player = null;
+        if (fallbackSource) {
+          videoOnlyFallbackAttempted = true;
+          loadStream(fallbackSource);
+          return;
+        }
         scheduleRetry();
       });
       player.on(window.Hls.Events.MANIFEST_PARSED, handleMediaReady);
-      player.loadSource(media.dataset.source);
+      player.loadSource(source);
       player.attachMedia(media);
       return;
     }
