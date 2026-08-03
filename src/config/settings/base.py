@@ -158,27 +158,31 @@ def _origin(url: str) -> str:
     return f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else ""
 
 
-static_origin = _origin(STATIC_URL)
-hls_origin = _origin(MEDIAMTX_HLS_PUBLIC_BASE_URL)
-SECURE_CSP = {
-    "default-src": [CSP.SELF],
-    "base-uri": [CSP.SELF],
-    "form-action": [CSP.SELF],
-    "frame-ancestors": [CSP.SELF],
-    "frame-src": [CSP.SELF, *([hls_origin] if hls_origin else [])],
-    "object-src": [CSP.NONE],
-    "script-src": [
-        CSP.SELF,
-        *([static_origin] if static_origin else []),
-        *([hls_origin] if hls_origin else []),
-    ],
-    "style-src": [CSP.SELF, *([static_origin] if static_origin else [])],
-    "font-src": [CSP.SELF, *([static_origin] if static_origin else [])],
-    "img-src": [CSP.SELF, "data:", *([static_origin] if static_origin else [])],
-    "connect-src": [CSP.SELF, *([hls_origin] if hls_origin else [])],
-    "media-src": [CSP.SELF, "blob:", *([hls_origin] if hls_origin else [])],
-    "worker-src": [CSP.SELF, "blob:"],
-}
+def content_security_policy(static_url: str, hls_public_url: str) -> dict[str, list[str]]:
+    static_origin = _origin(static_url)
+    hls_origin = _origin(hls_public_url)
+    return {
+        "default-src": [CSP.SELF],
+        "base-uri": [CSP.SELF],
+        "form-action": [CSP.SELF],
+        "frame-ancestors": [CSP.SELF],
+        "frame-src": [CSP.SELF, *([hls_origin] if hls_origin else [])],
+        "object-src": [CSP.NONE],
+        "script-src": [
+            CSP.SELF,
+            *([static_origin] if static_origin else []),
+            *([hls_origin] if hls_origin else []),
+        ],
+        "style-src": [CSP.SELF, *([static_origin] if static_origin else [])],
+        "font-src": [CSP.SELF, *([static_origin] if static_origin else [])],
+        "img-src": [CSP.SELF, "data:", *([static_origin] if static_origin else [])],
+        "connect-src": [CSP.SELF, *([hls_origin] if hls_origin else [])],
+        "media-src": [CSP.SELF, "blob:", *([hls_origin] if hls_origin else [])],
+        "worker-src": [CSP.SELF, "blob:"],
+    }
+
+
+SECURE_CSP = content_security_policy(STATIC_URL, MEDIAMTX_HLS_PUBLIC_BASE_URL)
 SECURE_CSP_REPORT_ONLY = {}
 
 LOGGING = {

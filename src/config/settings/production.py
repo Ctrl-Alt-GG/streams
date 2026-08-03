@@ -1,7 +1,7 @@
 from urllib.parse import urlsplit
 
 from config.settings.base import *  # noqa: F403
-from config.settings.base import env
+from config.settings.base import content_security_policy, env
 
 ENVIRONMENT = "production"
 DEBUG = False
@@ -55,6 +55,7 @@ STORAGES = {
         },
     },
 }
+SECURE_CSP = content_security_policy(STATIC_URL, MEDIAMTX_HLS_PUBLIC_BASE_URL)  # noqa: F405
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = True
