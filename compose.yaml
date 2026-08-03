@@ -13,7 +13,7 @@ services:
       start_period: 20s
 
   redis:
-    image: redis:8.8.1
+    image: redis:latest
     restart: unless-stopped
     env_file: .env
     command: ["/bin/sh", "-c", "exec redis-server --save '' --appendonly no --requirepass \"$$REDIS_PASSWORD\""]
@@ -24,7 +24,7 @@ services:
       retries: 5
 
   rabbitmq:
-    image: rabbitmq:4.3.4
+    image: rabbitmq:4-management
     restart: unless-stopped
     env_file: .env
     volumes:
@@ -61,42 +61,48 @@ services:
       - /bin/sh
       - -eu
       - -c
-    command: |
-      : "$${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}"
-      : "$${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}"
-      : "$${MINIO_STATIC_ACCESS_KEY:?MINIO_STATIC_ACCESS_KEY is required}"
-      : "$${MINIO_STATIC_SECRET_KEY:?MINIO_STATIC_SECRET_KEY is required}"
-      : "$${MINIO_STATIC_BUCKET:?MINIO_STATIC_BUCKET is required}"
+    # Must be a single list item: Compose shell-splits a plain string command
+    # into argv, which would hand `sh -c` only the first token.
+    command:
+      - |
+        : "$${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}"
+        : "$${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}"
+        : "$${MINIO_STATIC_ACCESS_KEY:?MINIO_STATIC_ACCESS_KEY is required}"
+        : "$${MINIO_STATIC_SECRET_KEY:?MINIO_STATIC_SECRET_KEY is required}"
+        : "$${MINIO_STATIC_BUCKET:?MINIO_STATIC_BUCKET is required}"
 
-      mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"
-      mc mb --ignore-existing "local/$${MINIO_STATIC_BUCKET}"
-      mc admin user remove local "$${MINIO_STATIC_ACCESS_KEY}" || true
-      mc admin user add local "$${MINIO_STATIC_ACCESS_KEY}" "$${MINIO_STATIC_SECRET_KEY}"
+        mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"
+        mc mb --ignore-existing "local/$${MINIO_STATIC_BUCKET}"
+        mc admin user add local "$${MINIO_STATIC_ACCESS_KEY}" "$${MINIO_STATIC_SECRET_KEY}"
 
-      cat > /tmp/static-writer-policy.json <<EOF
-      {
-        "Version": "2012-10-17",
-        "Statement": [
-          {
-            "Effect": "Allow",
-            "Action": ["s3:ListBucket", "s3:GetBucketLocation"],
-            "Resource": ["arn:aws:s3:::$${MINIO_STATIC_BUCKET}"]
-          },
-          {
-            "Effect": "Allow",
-            "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
-            "Resource": ["arn:aws:s3:::$${MINIO_STATIC_BUCKET}/*"]
-          }
-        ]
-      }
-      EOF
+        cat > /tmp/static-writer-policy.json <<EOF
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": ["s3:ListBucket", "s3:GetBucketLocation"],
+              "Resource": ["arn:aws:s3:::$${MINIO_STATIC_BUCKET}"]
+            },
+            {
+              "Effect": "Allow",
+              "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+              "Resource": ["arn:aws:s3:::$${MINIO_STATIC_BUCKET}/*"]
+            }
+          ]
+        }
+        EOF
 
-      mc admin policy remove local streams-static-writer || true
-      mc admin policy create local streams-static-writer /tmp/static-writer-policy.json
-      mc admin policy attach local streams-static-writer --user "$${MINIO_STATIC_ACCESS_KEY}"
-      mc anonymous set download "local/$${MINIO_STATIC_BUCKET}"
+        mc admin policy create local streams-static-writer /tmp/static-writer-policy.json
+        # Re-attaching an already-attached policy is an error; the smoke test below
+        # is what actually proves the grant is in place.
+        mc admin policy attach local streams-static-writer --user "$${MINIO_STATIC_ACCESS_KEY}" || true
+        mc anonymous set download "local/$${MINIO_STATIC_BUCKET}"
 
-      mc stat "local/$${MINIO_STATIC_BUCKET}"
+        mc alias set static-writer http://minio:9000 "$${MINIO_STATIC_ACCESS_KEY}" "$${MINIO_STATIC_SECRET_KEY}"
+        printf 'ready\n' | mc pipe "static-writer/$${MINIO_STATIC_BUCKET}/.streams-init-check"
+        mc stat "static-writer/$${MINIO_STATIC_BUCKET}/.streams-init-check"
+        mc rm "static-writer/$${MINIO_STATIC_BUCKET}/.streams-init-check"
     depends_on:
       minio:
         condition: service_healthy
