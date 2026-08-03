@@ -70,7 +70,8 @@ services:
 
       mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"
       mc mb --ignore-existing "local/$${MINIO_STATIC_BUCKET}"
-      mc admin user add local "$${MINIO_STATIC_ACCESS_KEY}" "$${MINIO_STATIC_SECRET_KEY}" || true
+      mc admin user remove local "$${MINIO_STATIC_ACCESS_KEY}" || true
+      mc admin user add local "$${MINIO_STATIC_ACCESS_KEY}" "$${MINIO_STATIC_SECRET_KEY}"
 
       cat > /tmp/static-writer-policy.json <<EOF
       {
@@ -90,7 +91,8 @@ services:
       }
       EOF
 
-      mc admin policy create local streams-static-writer /tmp/static-writer-policy.json || true
+      mc admin policy remove local streams-static-writer || true
+      mc admin policy create local streams-static-writer /tmp/static-writer-policy.json
       mc admin policy attach local streams-static-writer --user "$${MINIO_STATIC_ACCESS_KEY}"
       mc anonymous set download "local/$${MINIO_STATIC_BUCKET}"
 
