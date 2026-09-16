@@ -1,5 +1,7 @@
 FROM python:3.14-slim
 
+LABEL org.opencontainers.image.description="Streams Celery beat: schedules periodic tasks for the Ctrl-Alt-GG streams directory."
+
 ENV DJANGO_SETTINGS_MODULE=config.settings.production \
     PYTHONPATH=/app/src \
     PYTHONDONTWRITEBYTECODE=1 \

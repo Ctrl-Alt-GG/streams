@@ -1,5 +1,7 @@
 FROM python:3.14-slim
 
+LABEL org.opencontainers.image.description="Streams web: network-private Django directory for streams served by an external MediaMTX deployment."
+
 ENV DJANGO_SETTINGS_MODULE=config.settings.production \
     PYTHONPATH=/app/src \
     PYTHONDONTWRITEBYTECODE=1 \
