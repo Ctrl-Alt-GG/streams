@@ -22,11 +22,15 @@ def _now() -> str:
     return datetime.now(UTC).isoformat()
 
 
+def _sanitize_for_log(value: object) -> str:
+    return str(value).replace("\r", "").replace("\n", "")
+
+
 def read_public_cache(key: str) -> object:
     try:
         return cache.get(key)
     except (RedisConnectionError, RedisTimeoutError) as error:
-        logger.warning("catalog_cache_read_failed key=%s error=%s", key, error)
+        logger.warning("catalog_cache_read_failed key=%s error=%s", _sanitize_for_log(key), error)
         return None
 
 
