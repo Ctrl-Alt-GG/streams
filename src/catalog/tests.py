@@ -328,6 +328,21 @@ class ThumbnailCacheTests(SimpleTestCase):
         ):
             read_public_cache("key")
 
+    def test_cache_read_warning_sanitizes_key_without_changing_cache_lookup(self):
+        key = "cache\r\nkey"
+        with (
+            patch(
+                "catalog.services.cache.cache.get",
+                side_effect=RedisConnectionError("unavailable"),
+            ) as cache_get,
+            self.assertLogs("catalog.services.cache", level="WARNING") as logs,
+        ):
+            self.assertIsNone(read_public_cache(key))
+
+        cache_get.assert_called_once_with(key)
+        self.assertNotIn("\r", logs.output[0])
+        self.assertNotIn("\n", logs.output[0])
+
     @override_settings(STREAM_THUMBNAIL_REFRESH_SECONDS=60)
     def test_old_thumbnail_is_refreshed(self):
         with patch("catalog.services.thumbnails.datetime") as clock:
