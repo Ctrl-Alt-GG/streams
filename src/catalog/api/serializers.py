@@ -1,5 +1,6 @@
 from collections.abc import Mapping
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
@@ -49,6 +50,13 @@ class StreamDetailEnvelopeSerializer(serializers.Serializer):
 
 
 class StreamOverlaySerializer(serializers.ModelSerializer):
+    def update(self, instance, validated_data):
+        try:
+            return super().update(instance, validated_data)
+        except DjangoValidationError as error:
+            detail = error.message_dict if hasattr(error, "message_dict") else error.messages
+            raise serializers.ValidationError(detail) from error
+
     class Meta:
         model = Stream
         fields = ("display_name", "description")

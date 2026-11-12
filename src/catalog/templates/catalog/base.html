@@ -15,6 +15,7 @@
     {% block head %}{% endblock %}
   </head>
   <body class="min-h-screen min-w-80 bg-[linear-gradient(to_bottom,#fafafa_0,#f4f4f5_26rem)] font-sans text-zinc-900 antialiased dark:bg-[linear-gradient(to_bottom,#111113_0,#09090b_26rem)] dark:text-zinc-200 [&_:focus-visible]:outline-[3px] [&_:focus-visible]:outline-brand-500 [&_:focus-visible]:outline-offset-[3px]">
+    <a href="#main-content" class="sr-only focus:not-sr-only">{% translate "Skip to content" %}</a>
     <header class="sticky top-0 z-50 border-b border-white/10 bg-[#111113]/95 text-white shadow-sm backdrop-blur-md">
       <div class="mx-auto flex h-16 w-full max-w-[90rem] items-center gap-1 px-4 sm:gap-5 sm:px-6 lg:px-8">
         <a href="{% url 'catalog:home' %}" class="mr-auto flex shrink-0 items-center gap-1.5 no-underline transition-opacity hover:opacity-80 motion-reduce:transition-none sm:gap-2.5" aria-label="{% translate 'Ctrl-Alt-GG Streams home' %}">
@@ -32,7 +33,7 @@
           {% csrf_token %}
           <input name="next" type="hidden" value="{{ request.get_full_path }}">
           {% for language in languages %}
-            <button type="submit" name="language" value="{{ language.code }}" lang="{{ language.code }}" title="{{ language.name_local }}" {% if language.code == LANGUAGE_CODE %}aria-current="page"{% endif %} class="cursor-pointer rounded-sm border-0 bg-transparent px-1 py-1.5 text-white/45 transition-colors hover:text-white motion-reduce:transition-none aria-[current=page]:bg-white/10 aria-[current=page]:text-white sm:px-1.5">{{ language.code }}</button>
+            <button type="submit" name="language" value="{{ language.code }}" lang="{{ language.code }}" title="{{ language.name_local }}" aria-pressed="{% if language.code == LANGUAGE_CODE %}true{% else %}false{% endif %}" class="cursor-pointer rounded-sm border-0 bg-transparent px-1 py-1.5 text-white/45 transition-colors hover:text-white motion-reduce:transition-none aria-[pressed=true]:bg-white/10 aria-[pressed=true]:text-white sm:px-1.5">{{ language.code }}</button>
           {% endfor %}
         </form>
       </div>
@@ -41,6 +42,10 @@
     <main id="main-content" class="mx-auto w-full max-w-[90rem] px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
       {% block content %}{% endblock %}
     </main>
+    {% if watch_state %}
+      {{ watch_state|json_script:"catalog-watch-state" }}
+      <script src="{% static 'catalog/js/catalog.js' %}" defer></script>
+    {% endif %}
     {% block scripts %}{% endblock %}
   </body>
 </html>

@@ -24,12 +24,13 @@ RUN uv export --frozen --no-dev --no-emit-project --output-file /tmp/requirement
     && python -m pip uninstall --yes uv \
     && rm -rf /root/.cache /tmp/requirements.txt
 
-COPY --chown=10001:10001 manage.py ./
-COPY --chown=10001:10001 src ./src
-COPY --chown=10001:10001 generated_static ./generated_static
+COPY manage.py ./
+COPY src ./src
+COPY generated_static ./generated_static
 
 RUN python manage.py compilemessages -l hu --settings=config.settings.base \
     && python manage.py tailwind --settings=config.settings.base build --force \
+    && python manage.py collectstatic --noinput --settings=config.settings.base \
     && rm -rf .django_tailwind_cli
 
 USER 10001:10001

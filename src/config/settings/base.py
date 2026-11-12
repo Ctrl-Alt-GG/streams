@@ -29,18 +29,19 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "drf_spectacular_sidecar",
     "django_tailwind_cli",
-    "storages",
     "health_check",
     "catalog.apps.CatalogConfig",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "catalog.middleware.AdminLoginThrottleMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.middleware.csp.ContentSecurityPolicyMiddleware",
@@ -68,8 +69,14 @@ TEMPLATES = [
 DATABASES = {"default": env.db("DATABASE_URL", default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")}
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": "streams-development",
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": env("REDIS_URL", default="redis://localhost:6379/0"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
+            "SOCKET_CONNECT_TIMEOUT": 2,
+            "SOCKET_TIMEOUT": 2,
+        },
     }
 }
 
@@ -87,17 +94,17 @@ LANGUAGES = [
     ("en", "English"),
 ]
 LOCALE_PATHS = [BASE_DIR / "src" / "locale"]
-TIME_ZONE = "UTC"
+TIME_ZONE = env("TIME_ZONE", default="Europe/Budapest")
 USE_I18N = True
 USE_TZ = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-STATIC_URL = env("MINIO_STATIC_PUBLIC_URL", default="/static/")
+STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "generated_static"]
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
 
 TAILWIND_CLI_VERSION = "4.1.14"
@@ -165,13 +172,12 @@ def content_security_policy(static_url: str, hls_public_url: str) -> dict[str, l
         "default-src": [CSP.SELF],
         "base-uri": [CSP.SELF],
         "form-action": [CSP.SELF],
-        "frame-ancestors": [CSP.SELF],
-        "frame-src": [CSP.SELF, *([hls_origin] if hls_origin else [])],
+        "frame-ancestors": [CSP.NONE],
+        "frame-src": [CSP.NONE],
         "object-src": [CSP.NONE],
         "script-src": [
             CSP.SELF,
             *([static_origin] if static_origin else []),
-            *([hls_origin] if hls_origin else []),
         ],
         "style-src": [CSP.SELF, *([static_origin] if static_origin else [])],
         "font-src": [CSP.SELF, *([static_origin] if static_origin else [])],
@@ -213,9 +219,9 @@ CELERY_WORKER_DETECT_QUORUM_QUEUES = True
 CELERY_WORKER_ENABLE_REMOTE_CONTROL = False
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_ROUTES = {
-    "catalog.tasks.refresh_mediamtx_snapshot": {"queue": "mediamtx-quorum"},
-    "catalog.tasks.refresh_stream_thumbnail": {"queue": "mediamtx-quorum"},
-    "catalog.tasks.refresh_stream_thumbnails": {"queue": "mediamtx-quorum"},
+    "catalog.tasks.refresh_mediamtx_snapshot": {"queue": "status-quorum"},
+    "catalog.tasks.refresh_stream_thumbnail": {"queue": "thumbnails-quorum"},
+    "catalog.tasks.refresh_stream_thumbnails": {"queue": "status-quorum"},
 }
 CELERY_TASK_SOFT_TIME_LIMIT = 7
 CELERY_TASK_TIME_LIMIT = 9
@@ -223,14 +229,14 @@ CELERY_BEAT_SCHEDULE = {
     "refresh-mediamtx-snapshot": {
         "task": "catalog.tasks.refresh_mediamtx_snapshot",
         "schedule": MEDIAMTX_RECONCILE_INTERVAL_SECONDS,
-        "options": {"expires": 9.0, "queue": "mediamtx-quorum"},
+        "options": {"expires": 9.0, "queue": "status-quorum"},
     },
     "refresh-stream-thumbnails": {
         "task": "catalog.tasks.refresh_stream_thumbnails",
         "schedule": STREAM_THUMBNAIL_SCAN_SECONDS,
         "options": {
             "expires": STREAM_THUMBNAIL_TASK_EXPIRES_SECONDS,
-            "queue": "mediamtx-quorum",
+            "queue": "status-quorum",
         },
     },
 }

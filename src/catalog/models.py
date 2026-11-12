@@ -16,6 +16,8 @@ class BlockedPath(models.Model):
 
     class Meta:
         ordering = ("path_name",)
+        verbose_name = _("Hidden path")
+        verbose_name_plural = _("Hidden paths")
 
     def __str__(self) -> str:
         return self.path_name

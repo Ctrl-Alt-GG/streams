@@ -9,7 +9,9 @@
   let player = null;
   let retryTimer = null;
   let playbackRequested = false;
+  let retryDelay = 2000;
   let videoOnlyFallbackAttempted = false;
+  let suspended = false;
 
   const showMessage = (text) => {
     message.textContent = text;
@@ -39,6 +41,7 @@
   };
 
   const handleMediaReady = () => {
+    retryDelay = 2000;
     hideMessage();
     startButton?.classList.add("hidden");
     media.classList.remove("hidden");
@@ -48,13 +51,32 @@
   };
 
   const scheduleRetry = () => {
+    if (suspended) return;
     showMessage(media.dataset.retryMessage);
     window.clearTimeout(retryTimer);
-    retryTimer = window.setTimeout(loadStream, 2000);
+    retryTimer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(media.dataset.statusUrl, { cache: "no-store", signal: AbortSignal.timeout(5000) });
+        if (response.status === 404) { window.location.reload(); return; }
+        if (!response.ok) throw new Error("Status unavailable");
+        const status = await response.json();
+        if (suspended) return;
+        if (status.result.status !== "live") { window.location.reload(); return; }
+        loadStream();
+      } catch {
+        scheduleRetry();
+      }
+    }, retryDelay);
+    retryDelay = Math.min(retryDelay * 2, 30000);
   };
 
   const loadStream = (source = media.dataset.source) => {
+    if (suspended) return;
     retryTimer = null;
+    media.removeEventListener("loadedmetadata", handleMediaReady);
+    media.removeEventListener("error", scheduleRetry);
+    player?.destroy();
+    player = null;
 
     if (window.Hls?.isSupported()) {
       const playbackToken = window.crypto.randomUUID();
@@ -86,23 +108,30 @@
     }
 
     if (media.canPlayType("application/vnd.apple.mpegurl")) {
-      media.src = media.dataset.source;
       media.addEventListener("loadedmetadata", handleMediaReady, { once: true });
       media.addEventListener("error", scheduleRetry, { once: true });
+      media.src = source;
       return;
     }
 
-    showMessage(media.dataset.unsupportedMessage);
+    showMessage(window.Hls ? media.dataset.unsupportedMessage : media.dataset.libraryMessage);
   };
 
   window.addEventListener(
     "pagehide",
     () => {
+      suspended = true;
       window.clearTimeout(retryTimer);
+      media.removeEventListener("loadedmetadata", handleMediaReady);
+      media.removeEventListener("error", scheduleRetry);
       player?.destroy();
+      player = null;
     },
-    { once: true },
   );
+  window.addEventListener("pageshow", (event) => {
+    suspended = false;
+    if (event.persisted && (media.autoplay || playbackRequested)) loadStream();
+  });
 
   if (startButton) {
     startButton.addEventListener(

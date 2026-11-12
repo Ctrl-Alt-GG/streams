@@ -19,6 +19,14 @@ services:
     extra_hosts:
       - host.docker.internal:host-gateway
 
+  capture:
+    build:
+      context: .
+      dockerfile: docker/worker.Dockerfile
+    pull_policy: build
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
   beat:
     build:
       context: .

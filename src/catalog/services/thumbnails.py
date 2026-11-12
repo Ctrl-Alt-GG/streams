@@ -2,7 +2,7 @@ import base64
 import functools
 import json
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from hashlib import sha256
@@ -18,6 +18,9 @@ from django.contrib.staticfiles import finders
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.core.cache import cache
 from PIL import Image, ImageOps
+from redis.exceptions import LockError
+
+from catalog.services.cache import read_public_cache
 
 THUMBNAIL_SCHEMA_VERSION = 4
 THUMBNAIL_SIZE = (640, 360)
@@ -50,8 +53,12 @@ def _lock_key(stream_id: object) -> str:
     return f"catalog:thumbnail-lock:v{THUMBNAIL_SCHEMA_VERSION}:{stream_id}"
 
 
+def _timestamp_key(stream_id: object) -> str:
+    return f"{_cache_key(stream_id)}:generated-at"
+
+
 def get_thumbnail(stream_id: object) -> CachedThumbnail | None:
-    payload = cache.get(_cache_key(stream_id))
+    payload = read_public_cache(_cache_key(stream_id))
     if not isinstance(payload, dict):
         return None
     if (
@@ -94,6 +101,9 @@ def write_thumbnail(
         payload,
         timeout=settings.STREAM_THUMBNAIL_CACHE_SECONDS,
     )
+    cache.set(
+        _timestamp_key(stream_id), generated_at, timeout=settings.STREAM_THUMBNAIL_CACHE_SECONDS
+    )
     return CachedThumbnail(
         content=content,
         content_type=THUMBNAIL_CONTENT_TYPE,
@@ -103,15 +113,15 @@ def write_thumbnail(
 
 
 def delete_thumbnail(stream_id: object) -> None:
-    cache.delete(_cache_key(stream_id))
+    cache.delete_many([_cache_key(stream_id), _timestamp_key(stream_id)])
 
 
 def thumbnail_needs_refresh(stream_id: object) -> bool:
-    thumbnail = get_thumbnail(stream_id)
-    if thumbnail is None:
+    timestamp = cache.get(_timestamp_key(stream_id))
+    if not isinstance(timestamp, str):
         return True
     try:
-        generated_at = datetime.fromisoformat(thumbnail.generated_at)
+        generated_at = datetime.fromisoformat(timestamp)
         if generated_at.tzinfo is None:
             generated_at = generated_at.replace(tzinfo=UTC)
     except ValueError:
@@ -132,7 +142,8 @@ def thumbnail_lock(stream_id: object) -> Iterator[bool]:
             yield acquired
         finally:
             if acquired:
-                lock.release()
+                with suppress(LockError):
+                    lock.release()
         return
 
     token = uuid4().hex
@@ -151,9 +162,12 @@ def capture_thumbnail(hls_url: str) -> bytes:
         if not container.streams.video:
             raise ValueError("The stream does not contain a video track.")
         video_stream = container.streams.video[0]
-        video_stream.thread_type = "AUTO"
+        video_stream.codec_context.thread_count = 1
+        video_stream.codec_context.options = {"max_pixels": "8294400"}
         for frame in container.decode(video_stream):
-            image = ImageOps.fit(
+            if frame.width * frame.height > 8_294_400:
+                raise ValueError("Video frame exceeds the thumbnail decoder pixel limit.")
+            image = ImageOps.pad(
                 frame.to_image().convert("RGB"),
                 THUMBNAIL_SIZE,
                 method=Image.Resampling.LANCZOS,

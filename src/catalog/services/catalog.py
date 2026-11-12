@@ -9,7 +9,7 @@ from django.urls import reverse
 from catalog.models import BlockedPath, Stream
 from catalog.services.cache import get_poll_health, get_snapshot
 from catalog.services.media import media_kind_from_tracks
-from catalog.services.playback import build_hls_embed_url, build_hls_url
+from catalog.services.playback import build_hls_url, is_safe_path
 from catalog.services.thumbnails import (
     audio_thumbnail_url,
     fallback_thumbnail_url,
@@ -62,7 +62,6 @@ class StreamProjection:
     watch_url: str
     thumbnail_url: str
     hls_url: str | None
-    hls_embed_url: str | None
 
     @property
     def emoji(self) -> str:
@@ -92,22 +91,22 @@ class CatalogService:
         source, usable_snapshot = self._source(snapshot, health)
         blocked_paths = BlockedPath.objects.values_list("path_name", flat=True)
         records = Stream.objects.exclude(path_name__in=blocked_paths)
-        if usable_snapshot is not None:
-            records = records.filter(path_name__in=usable_snapshot.get("paths", {}))
         streams = tuple(
             self._project(record, usable_snapshot, source, public_urls=public_urls)
             for record in records
+            if is_safe_path(record.path_name)
         )
         return CatalogProjection(source=source, streams=tuple(sorted(streams, key=self._sort_key)))
 
     def get(
         self, stream_id, *, public_urls: bool = True
     ) -> tuple[SourceProjection, StreamProjection]:
-        catalog = self.list(public_urls=public_urls)
-        for stream in catalog.streams:
-            if stream.id == str(stream_id):
-                return catalog.source, stream
-        raise Stream.DoesNotExist
+        blocked_paths = BlockedPath.objects.values_list("path_name", flat=True)
+        record = Stream.objects.exclude(path_name__in=blocked_paths).get(pk=stream_id)
+        if not is_safe_path(record.path_name):
+            raise Stream.DoesNotExist
+        source, snapshot = self._source(get_snapshot(), get_poll_health() or {})
+        return source, self._project(record, snapshot, source, public_urls=public_urls)
 
     def _source(self, snapshot: dict | None, health: dict) -> tuple[SourceProjection, dict | None]:
         if not snapshot:
@@ -170,7 +169,7 @@ class CatalogService:
             status = "unknown"
             available = None
             online = None
-            audio_only = False
+            audio_only = record.media_kind == Stream.MediaKind.AUDIO
             tracks = ()
         else:
             available = bool(path and path.get("available"))
@@ -226,7 +225,6 @@ class CatalogService:
             watch_url=watch_url,
             thumbnail_url=thumbnail_url,
             hls_url=build_hls_url(record.path_name) if status == "live" else None,
-            hls_embed_url=build_hls_embed_url(record.path_name) if status == "live" else None,
         )
 
     @staticmethod

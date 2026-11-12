@@ -1,6 +1,6 @@
 FROM python:3.14-slim
 
-LABEL org.opencontainers.image.description="Streams Celery worker: processes the mediamtx-quorum queue for the Ctrl-Alt-GG streams directory."
+LABEL org.opencontainers.image.description="Streams Celery worker: processes the status and thumbnail queues for the Ctrl-Alt-GG streams directory."
 
 ENV DJANGO_SETTINGS_MODULE=config.settings.production \
     PYTHONPATH=/app/src \
@@ -21,9 +21,9 @@ RUN uv export --frozen --no-dev --no-emit-project --output-file /tmp/requirement
     && python -m pip uninstall --yes uv \
     && rm -rf /root/.cache /tmp/requirements.txt
 
-COPY --chown=10001:10001 manage.py ./
-COPY --chown=10001:10001 src ./src
+COPY manage.py ./
+COPY src ./src
 
 USER 10001:10001
 
-CMD ["/bin/sh", "-c", "exec celery --app=config worker --loglevel=\"${CELERY_LOG_LEVEL:-INFO}\" --queues=mediamtx-quorum --hostname=\"worker@${HOSTNAME}\" --without-mingle --without-gossip"]
+CMD ["/bin/sh", "-c", "exec celery --app=config worker --loglevel=\"${CELERY_LOG_LEVEL:-INFO}\" --queues=status-quorum --concurrency=2 --hostname=\"worker@${HOSTNAME}\" --without-mingle --without-gossip"]

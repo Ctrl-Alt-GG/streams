@@ -20,7 +20,7 @@ from catalog.services.cache import (
 )
 from catalog.services.media import media_kind_from_tracks
 from catalog.services.mediamtx import ActivePath, MediaMTXClient, MediaMTXSchemaError
-from catalog.services.playback import build_hls_capture_url
+from catalog.services.playback import build_hls_capture_url, is_safe_path
 from catalog.services.thumbnails import (
     ThumbnailKind,
     capture_thumbnail,
@@ -118,14 +118,14 @@ def refresh_mediamtx_snapshot(self) -> str:
                 if not path.name.startswith("~") and path.name not in {"all", "all_others"}
             )
             names.difference_update(BlockedPath.objects.values_list("path_name", flat=True))
+            unsafe_names = {name for name in names if not is_safe_path(name)}
+            if unsafe_names:
+                logger.warning("mediamtx_unsafe_paths_skipped count=%d", len(unsafe_names))
+            names.difference_update(unsafe_names)
             with transaction.atomic():
                 Stream.objects.bulk_create(
                     [Stream(path_name=name) for name in sorted(names)], ignore_conflicts=True
                 )
-                Stream.objects.exclude(path_name__in=names).filter(
-                    display_name="",
-                    description="",
-                ).delete()
 
             observed_at = datetime.now(UTC).isoformat()
             paths = {}
@@ -168,9 +168,11 @@ def refresh_mediamtx_snapshot(self) -> str:
             reason = _reason(error)
             record_failure(reason)
             logger.warning(
-                "mediamtx_reconcile_failed reason=%s exception=%s",
+                "mediamtx_reconcile_failed reason=%s exception=%s message=%s",
                 reason,
                 type(error).__name__,
+                error,
+                exc_info=reason == "unknown",
             )
             return "failed"
 
@@ -215,9 +217,10 @@ def refresh_stream_thumbnail(stream_id: str) -> str:
             raise
         except Exception as error:
             logger.warning(
-                "stream_thumbnail_capture_failed stream_id=%s exception=%s",
+                "stream_thumbnail_capture_failed stream_id=%s exception=%s message=%s",
                 stream.id,
                 type(error).__name__,
+                error,
             )
         else:
             snapshot = get_snapshot()

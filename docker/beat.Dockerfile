@@ -21,8 +21,8 @@ RUN uv export --frozen --no-dev --no-emit-project --output-file /tmp/requirement
     && python -m pip uninstall --yes uv \
     && rm -rf /root/.cache /tmp/requirements.txt
 
-COPY --chown=10001:10001 manage.py ./
-COPY --chown=10001:10001 src ./src
+COPY manage.py ./
+COPY src ./src
 
 USER 10001:10001
 

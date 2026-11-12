@@ -47,7 +47,7 @@
 {% endpartialdef %}
 
 {% partialdef source_warning %}
-  <aside class="mb-8 border-l-4 border-amber-500 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:bg-amber-950/60 dark:text-amber-100" role="status">
+  <aside data-source-warning data-stale-message="{% translate 'Stream status may be outdated while the source reconnects.' %}" data-unavailable-message="{% translate 'Stream status is temporarily unavailable.' %}" class="{% if source.status == 'fresh' %}hidden {% endif %}mb-8 border-l-4 border-amber-500 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:bg-amber-950/60 dark:text-amber-100" role="status">
     {% if source.status == "stale" %}
       {% translate "Stream status may be outdated while the source reconnects." %}
     {% else %}

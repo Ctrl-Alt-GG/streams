@@ -10,12 +10,23 @@ from catalog.services.catalog import CatalogService
 from catalog.services.thumbnails import audio_thumbnail_url, fallback_thumbnail_url, get_thumbnail
 
 
+def _watch_state(source, streams):
+    return {
+        "source": source.status,
+        "streams": [
+            [stream.id, stream.status, stream.audio_only, stream.effective_name, stream.description]
+            for stream in sorted(streams, key=lambda stream: stream.id)
+        ],
+    }
+
+
 @require_safe
 def home(request):
+    catalog = CatalogService().list(public_urls=False)
     return render(
         request,
         "catalog/home.html",
-        {"catalog": CatalogService().list(public_urls=False)},
+        {"catalog": catalog, "watch_state": _watch_state(catalog.source, catalog.streams)},
     )
 
 
@@ -25,7 +36,15 @@ def stream_detail(request, stream_id):
         source, stream = CatalogService().get(stream_id, public_urls=False)
     except Stream.DoesNotExist as error:
         raise Http404 from error
-    return render(request, "catalog/stream_detail.html", {"source": source, "stream": stream})
+    return render(
+        request,
+        "catalog/stream_detail.html",
+        {
+            "source": source,
+            "stream": stream,
+            "watch_state": _watch_state(source, [stream]),
+        },
+    )
 
 
 @require_safe
