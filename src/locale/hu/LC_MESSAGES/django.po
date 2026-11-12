@@ -284,3 +284,48 @@ msgstr "Az egyedi közvetítésnevet és a hitelesítő adatokat kezeld bizalmas
 
 msgid "Use the TLS-protected RTMPS endpoint only."
 msgstr "Kizárólag a TLS-sel védett RTMPS-végpontot használd."
+
+msgid "Skip to content"
+msgstr "Ugrás a tartalomra"
+
+msgid "View channel"
+msgstr "Csatorna megnyitása"
+
+msgid "Copied"
+msgstr "Másolva"
+
+msgid "Copy server URL"
+msgstr "Szervercím másolása"
+
+msgid "Copy stream key"
+msgstr "Streamkulcs másolása"
+
+msgid "Copy command"
+msgstr "Parancs másolása"
+
+msgid "The player could not load. Reload this page to try again."
+msgstr "A lejátszó nem töltődött be. Töltsd újra az oldalt, és próbáld újra."
+
+msgid "Playback starts muted. Use the player volume control to turn sound on."
+msgstr "A lejátszás némítva indul. A lejátszó hangerőszabályzójával kapcsolhatod be a hangot."
+
+msgid "Append ?user=USERNAME&pass=PASSWORD to the stream key, replacing both placeholders with your assigned credentials. URL-encode special characters, then start streaming."
+msgstr "A streamkulcs végére írd a ?user=USERNAME&pass=PASSWORD részt a kapott felhasználóneveddel és jelszavaddal. A speciális karaktereket URL-kódold, majd indítsd el a közvetítést."
+
+msgid "Replace USERNAME and PASSWORD with URL-encoded publishing credentials. The command can appear in shell history and the process list."
+msgstr "A USERNAME és PASSWORD helyére írd az URL-kódolt közzétételi adataidat. A parancs megjelenhet a parancselőzményekben és a folyamatlistában."
+
+msgid "Keep credentials private. Your stream name is visible in the catalog. Hiding a stream does not prevent playback."
+msgstr "A belépési adataidat tartsd titokban. A streamed neve látható a listában. A stream elrejtése nem akadályozza meg a lejátszást."
+
+msgid "Hidden path"
+msgstr "Elrejtett útvonal"
+
+msgid "Hidden paths"
+msgstr "Elrejtett útvonalak"
+
+msgid "Hide selected streams from the catalog"
+msgstr "Kijelölt streamek elrejtése a listából"
+
+msgid "Selected streams are hidden. Playback remains accessible."
+msgstr "A kijelölt streameket elrejtettük. A lejátszás továbbra is elérhető."

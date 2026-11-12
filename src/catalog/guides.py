@@ -22,6 +22,7 @@ def get_publishing_configuration() -> PublishingConfiguration:
         stream_key_prefix=stream_key_prefix,
         stream_key_example=stream_key_example,
         ffmpeg_template=(
-            f'ffmpeg -re -i INPUT -c:v libx264 -c:a aac -f flv "{server_url}/{stream_key_example}"'
+            f"ffmpeg -re -i INPUT -c:v libx264 -c:a aac -f flv "
+            f'"{server_url}/{stream_key_example}?user=USERNAME&pass=PASSWORD"'
         ),
     )

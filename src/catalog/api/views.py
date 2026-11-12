@@ -2,7 +2,7 @@ from django.http import Http404
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins
 from rest_framework.generics import GenericAPIView
-from rest_framework.permissions import AllowAny, DjangoModelPermissions
+from rest_framework.permissions import AllowAny, DjangoModelPermissions, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -51,7 +51,11 @@ class StreamDetailView(mixins.UpdateModelMixin, GenericAPIView):
     lookup_url_kwarg = "stream_id"
 
     def get_permissions(self):
-        return [DjangoModelPermissions()] if self.request.method == "PATCH" else [AllowAny()]
+        return (
+            [IsAdminUser(), DjangoModelPermissions()]
+            if self.request.method == "PATCH"
+            else [AllowAny()]
+        )
 
     @extend_schema(operation_id="stream_retrieve", responses=StreamDetailEnvelopeSerializer)
     def get(self, request, stream_id):

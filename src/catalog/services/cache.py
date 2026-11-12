@@ -1,10 +1,16 @@
+import logging
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from datetime import UTC, datetime
 from uuid import uuid4
 
 from django.conf import settings
 from django.core.cache import cache
+from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import LockError
+from redis.exceptions import TimeoutError as RedisTimeoutError
+
+logger = logging.getLogger(__name__)
 
 SNAPSHOT_SCHEMA_VERSION = 1
 SNAPSHOT_KEY = f"catalog:mediamtx:snapshot:v{SNAPSHOT_SCHEMA_VERSION}"
@@ -16,8 +22,16 @@ def _now() -> str:
     return datetime.now(UTC).isoformat()
 
 
+def read_public_cache(key: str) -> object:
+    try:
+        return cache.get(key)
+    except (RedisConnectionError, RedisTimeoutError) as error:
+        logger.warning("catalog_cache_read_failed key=%s error=%s", key, error)
+        return None
+
+
 def get_snapshot() -> dict | None:
-    snapshot = cache.get(SNAPSHOT_KEY)
+    snapshot = read_public_cache(SNAPSHOT_KEY)
     if (
         not isinstance(snapshot, dict)
         or snapshot.get("schema_version") != SNAPSHOT_SCHEMA_VERSION
@@ -34,7 +48,7 @@ def write_snapshot(snapshot: dict) -> None:
 
 
 def get_poll_health() -> dict | None:
-    health = cache.get(POLL_HEALTH_KEY)
+    health = read_public_cache(POLL_HEALTH_KEY)
     return health if isinstance(health, dict) else None
 
 
@@ -85,7 +99,8 @@ def reconcile_lock() -> Iterator[bool]:
             yield acquired
         finally:
             if acquired:
-                lock.release()
+                with suppress(LockError):
+                    lock.release()
         return
 
     token = uuid4().hex

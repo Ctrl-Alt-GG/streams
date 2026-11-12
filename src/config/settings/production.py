@@ -1,7 +1,5 @@
-from urllib.parse import urlsplit
-
 from config.settings.base import *  # noqa: F403
-from config.settings.base import content_security_policy, env
+from config.settings.base import env
 
 ENVIRONMENT = "production"
 DEBUG = False
@@ -24,38 +22,6 @@ CACHES = {
         },
     }
 }
-
-MINIO_ENDPOINT_URL = env("MINIO_ENDPOINT_URL")
-MINIO_STATIC_PUBLIC_URL = env("MINIO_STATIC_PUBLIC_URL")
-MINIO_STATIC_BUCKET = env("MINIO_STATIC_BUCKET")
-MINIO_STATIC_ACCESS_KEY = env("MINIO_STATIC_ACCESS_KEY")
-MINIO_STATIC_SECRET_KEY = env("MINIO_STATIC_SECRET_KEY")
-MINIO_REGION = env("MINIO_REGION", default="us-east-1")
-
-public_static = urlsplit(MINIO_STATIC_PUBLIC_URL)
-STATIC_URL = MINIO_STATIC_PUBLIC_URL
-STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {
-        "BACKEND": "config.storage.HashedS3ManifestStaticStorage",
-        "OPTIONS": {
-            "access_key": MINIO_STATIC_ACCESS_KEY,
-            "secret_key": MINIO_STATIC_SECRET_KEY,
-            "bucket_name": MINIO_STATIC_BUCKET,
-            "endpoint_url": MINIO_ENDPOINT_URL,
-            "region_name": MINIO_REGION,
-            "addressing_style": "path",
-            "querystring_auth": False,
-            "file_overwrite": True,
-            "custom_domain": f"{public_static.netloc}{public_static.path.rstrip('/')}",
-            "url_protocol": f"{public_static.scheme}:",
-            "object_parameters": {
-                "CacheControl": "public,max-age=31536000,immutable",
-            },
-        },
-    },
-}
-SECURE_CSP = content_security_policy(STATIC_URL, MEDIAMTX_HLS_PUBLIC_BASE_URL)  # noqa: F405
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = True

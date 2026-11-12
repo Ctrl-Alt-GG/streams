@@ -1,3 +1,4 @@
+import ssl
 from collections.abc import Iterator
 from typing import Any, TypeVar
 
@@ -19,7 +20,7 @@ class ActivePath(BaseModel):
 
     name: str
     conf_name: str | None = Field(default=None, alias="confName")
-    available: bool = False
+    available: bool
     available_time: str | None = Field(default=None, alias="availableTime")
     online: bool | None = None
     online_time: str | None = Field(default=None, alias="onlineTime")
@@ -50,9 +51,9 @@ ItemT = TypeVar("ItemT", ActivePath, ConfiguredPath)
 class MediaMTXClient:
     def __init__(self, client: httpx.Client | None = None) -> None:
         self._owns_client = client is None
-        verify: bool | str = settings.MEDIAMTX_API_VERIFY_TLS
+        verify: bool | ssl.SSLContext = settings.MEDIAMTX_API_VERIFY_TLS
         if settings.MEDIAMTX_API_CA_BUNDLE:
-            verify = settings.MEDIAMTX_API_CA_BUNDLE
+            verify = ssl.create_default_context(cafile=settings.MEDIAMTX_API_CA_BUNDLE)
         timeout = httpx.Timeout(
             connect=settings.MEDIAMTX_API_CONNECT_TIMEOUT,
             read=settings.MEDIAMTX_API_READ_TIMEOUT,

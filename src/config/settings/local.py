@@ -1,4 +1,10 @@
+from django.core.exceptions import ImproperlyConfigured
+
 from config.settings.production import *  # noqa: F403
+from config.settings.production import ALLOWED_HOSTS
+
+if any(host not in {"localhost", "127.0.0.1", "[::1]"} for host in ALLOWED_HOSTS):
+    raise ImproperlyConfigured("Local debug settings require loopback-only DJANGO_ALLOWED_HOSTS.")
 
 ENVIRONMENT = "local"
 DEBUG = True

@@ -1,10 +1,5 @@
-{% extends "catalog/base.html" %}
-{% load i18n %}
-{% block title %}{% translate "Server error" %} | Streams{% endblock %}
-{% block content %}
-  <section class="max-w-xl py-12">
-    <p class="text-sm font-semibold uppercase tracking-widest text-brand-600">500</p>
-    <h1 class="mt-3 text-4xl font-black">{% translate "Service unavailable" %}</h1>
-    <p class="mt-4 text-zinc-600 dark:text-zinc-300">{% translate "The request could not be completed. Try again shortly." %}</p>
-  </section>
-{% endblock %}
+{% load i18n %}<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{% translate "Service unavailable" %} | Streams</title></head>
+  <body><main><h1>{% translate "Service unavailable" %}</h1><p>{% translate "The request could not be completed. Try again shortly." %}</p><a href="/">Streams</a></main></body>
+</html>
