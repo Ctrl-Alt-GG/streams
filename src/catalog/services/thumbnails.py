@@ -1,8 +1,6 @@
 import base64
 import functools
 import json
-from collections.abc import Iterator
-from contextlib import contextmanager, suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from hashlib import sha256
@@ -10,7 +8,6 @@ from io import BytesIO
 from pathlib import Path
 from typing import Literal
 from urllib.parse import urljoin
-from uuid import uuid4
 
 import av
 from django.conf import settings
@@ -18,9 +15,8 @@ from django.contrib.staticfiles import finders
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.core.cache import cache
 from PIL import Image, ImageOps
-from redis.exceptions import LockError
 
-from catalog.services.cache import read_public_cache
+from catalog.services.cache import cache_lock, read_public_cache
 
 THUMBNAIL_SCHEMA_VERSION = 4
 THUMBNAIL_SIZE = (640, 360)
@@ -130,29 +126,8 @@ def thumbnail_needs_refresh(stream_id: object) -> bool:
     return age >= settings.STREAM_THUMBNAIL_REFRESH_SECONDS
 
 
-@contextmanager
-def thumbnail_lock(stream_id: object) -> Iterator[bool]:
-    key = _lock_key(stream_id)
-    timeout = settings.STREAM_THUMBNAIL_LOCK_SECONDS
-    lock_factory = getattr(cache, "lock", None)
-    if lock_factory is not None:
-        lock = lock_factory(key, timeout=timeout, blocking_timeout=0)
-        acquired = lock.acquire(blocking=False)
-        try:
-            yield acquired
-        finally:
-            if acquired:
-                with suppress(LockError):
-                    lock.release()
-        return
-
-    token = uuid4().hex
-    acquired = cache.add(key, token, timeout=timeout)
-    try:
-        yield acquired
-    finally:
-        if acquired and cache.get(key) == token:
-            cache.delete(key)
+def thumbnail_lock(stream_id: object):
+    return cache_lock(_lock_key(stream_id), settings.STREAM_THUMBNAIL_LOCK_SECONDS)
 
 
 def capture_thumbnail(hls_url: str) -> bytes:
@@ -176,29 +151,36 @@ def capture_thumbnail(hls_url: str) -> bytes:
     raise ValueError("The stream ended before a video frame was decoded.")
 
 
-def fallback_thumbnail_url(seed: str, *, variant: int | None = None) -> str:
-    manifest = _thumbnail_assets()
-    return _thumbnail_variant_url(seed, manifest.fallbacks, variant)
+# Artwork is addressed relative to the site on the catalog's own pages, which then work on every
+# allowed host name, as their Content-Security-Policy only allows images of the page's origin. The
+# API (`public`) gives full addresses on PUBLIC_BASE_URL, for the other systems that show them.
 
 
-def audio_thumbnail_url(seed: str, *, variant: int | None = None) -> str:
+def fallback_thumbnail_url(seed: str, *, variant: int | None = None, public: bool = True) -> str:
     manifest = _thumbnail_assets()
-    return _thumbnail_variant_url(seed, manifest.audio_fallbacks, variant)
+    return _thumbnail_variant_url(seed, manifest.fallbacks, variant, public=public)
+
+
+def audio_thumbnail_url(seed: str, *, variant: int | None = None, public: bool = True) -> str:
+    manifest = _thumbnail_assets()
+    return _thumbnail_variant_url(seed, manifest.audio_fallbacks, variant, public=public)
 
 
 def _thumbnail_variant_url(
     seed: str,
     assets: tuple[str, ...],
     variant: int | None,
+    *,
+    public: bool,
 ) -> str:
     digest = sha256(seed.encode()).digest()
     asset_index = digest[0] % len(assets) if variant is None else variant % len(assets)
-    return _static_asset_url(assets[asset_index])
+    return _static_asset_url(assets[asset_index], public=public)
 
 
-def offline_thumbnail_url() -> str:
+def offline_thumbnail_url(*, public: bool = True) -> str:
     manifest = _thumbnail_assets()
-    return _static_asset_url(manifest.offline)
+    return _static_asset_url(manifest.offline, public=public)
 
 
 @functools.lru_cache(maxsize=1)
@@ -237,8 +219,10 @@ def _manifest_string(value: object, field: str) -> str:
     return value
 
 
-def _static_asset_url(asset_name: str) -> str:
+def _static_asset_url(asset_name: str, *, public: bool) -> str:
     asset_url = staticfiles_storage.url(asset_name)
+    if not public:
+        return asset_url
     if asset_url.startswith("/") and not asset_url.startswith("//"):
         asset_url = asset_url.lstrip("/")
     return urljoin(f"{settings.PUBLIC_BASE_URL.rstrip('/')}/", asset_url)

@@ -34,8 +34,9 @@
           <dt class="font-semibold">{% translate "Stream key" %}</dt><dd class="font-mono" id="publish-key">{{ publishing.stream_key_example }}</dd>
         </div>
       </dl>
-      <button type="button" data-copy-target="publish-server" data-copied-message="{% translate 'Copied' %}" class="mt-3 rounded border px-3 py-2">{% translate "Copy server URL" %}</button>
-      <button type="button" data-copy-target="publish-key" data-copied-message="{% translate 'Copied' %}" class="mt-3 rounded border px-3 py-2">{% translate "Copy stream key" %}</button>
+      <button type="button" data-copy-target="publish-server" data-copy-status="obs-copy-status" data-copied-message="{% translate 'Copied' %}" class="mt-3 rounded border px-3 py-2">{% translate "Copy server URL" %}</button>
+      <button type="button" data-copy-target="publish-key" data-copy-status="obs-copy-status" data-copied-message="{% translate 'Copied' %}" class="mt-3 rounded border px-3 py-2">{% translate "Copy stream key" %}</button>
+      <p id="obs-copy-status" role="status" data-message="{% translate 'Press Ctrl+C (⌘C on a Mac) to copy the selected text.' %}" class="mt-2 text-sm"></p>
       <ol class="mt-6 list-decimal space-y-4 pl-5 text-sm leading-6 text-zinc-700 marker:font-bold marker:text-brand-600 dark:text-zinc-300 dark:marker:text-brand-400">
         <li class="pl-2">{% translate "Open Settings, then select Stream." %}</li>
         <li class="pl-2">{% translate "Choose Custom as the service and enter the server URL shown here." %}</li>
@@ -48,7 +49,8 @@
     <section aria-labelledby="ffmpeg-title" class="relative min-w-0 overflow-hidden rounded-lg border border-zinc-200 bg-white px-6 py-6 before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-gradient-to-r before:from-brand-600 before:to-brand-500 dark:border-zinc-600 dark:bg-zinc-800">
       <h2 id="ffmpeg-title" class="text-2xl font-bold">FFmpeg</h2>
       <pre class="mt-6 overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-950 p-5 text-sm leading-6 text-zinc-100"><code id="publish-command">{{ publishing.ffmpeg_template }}</code></pre>
-      <button type="button" data-copy-target="publish-command" data-copied-message="{% translate 'Copied' %}" class="mt-3 rounded border px-3 py-2">{% translate "Copy command" %}</button>
+      <button type="button" data-copy-target="publish-command" data-copy-status="ffmpeg-copy-status" data-copied-message="{% translate 'Copied' %}" class="mt-3 rounded border px-3 py-2">{% translate "Copy command" %}</button>
+      <p id="ffmpeg-copy-status" role="status" data-message="{% translate 'Press Ctrl+C (⌘C on a Mac) to copy the selected text.' %}" class="mt-2 text-sm"></p>
       <p class="mt-3 text-sm">{% translate "Replace USERNAME and PASSWORD with URL-encoded publishing credentials. The command can appear in shell history and the process list." %}</p>
       <h3 class="mt-7 font-bold">{% translate "Before publishing" %}</h3>
       <ul class="mt-3 space-y-3 text-sm leading-6 text-zinc-600 dark:text-zinc-300">

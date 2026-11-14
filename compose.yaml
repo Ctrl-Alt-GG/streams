@@ -1,8 +1,24 @@
+# The infrastructure services get only their own settings from .env, and the capture worker only
+# what capturing needs. The other application containers read all of .env.
+
+networks:
+  default:
+    # A fixed subnet, so that the gateway is known: the host's reverse proxy reaches the published
+    # port through it, and the web container trusts its X-Forwarded-For (TRUSTED_PROXIES). Pick
+    # another private /24 if this one is taken on the host, and set TRUSTED_PROXIES to match.
+    ipam:
+      config:
+        - subnet: 172.31.241.0/24
+          gateway: 172.31.241.1
+
 services:
   postgres:
     image: postgres:18
     restart: unless-stopped
-    env_file: .env
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
     volumes:
       - ./data/postgres:/var/lib/postgresql
     healthcheck:
@@ -15,7 +31,8 @@ services:
   redis:
     image: redis:8.2
     restart: unless-stopped
-    env_file: .env
+    environment:
+      - REDIS_PASSWORD
     command: ["/bin/sh", "-c", "exec redis-server --save '' --appendonly no --requirepass \"$$REDIS_PASSWORD\""]
     healthcheck:
       test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
@@ -26,7 +43,9 @@ services:
   rabbitmq:
     image: rabbitmq:4-management
     restart: unless-stopped
-    env_file: .env
+    environment:
+      - RABBITMQ_DEFAULT_USER
+      - RABBITMQ_DEFAULT_PASS
     volumes:
       - ./data/rabbitmq:/var/lib/rabbitmq
     healthcheck:
@@ -55,6 +74,8 @@ services:
   web:
     image: ghcr.io/${GHCR_NAMESPACE:-ctrl-alt-gg}/streams-web:${APP_IMAGE_TAG:?set APP_IMAGE_TAG}
     env_file: .env
+    environment:
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-172.31.241.1}
     restart: unless-stopped
     read_only: true
     tmpfs:
@@ -105,7 +126,17 @@ services:
 
   capture:
     image: ghcr.io/${GHCR_NAMESPACE:-ctrl-alt-gg}/streams-worker:${APP_IMAGE_TAG:?set APP_IMAGE_TAG}
-    env_file: .env
+    # Decodes video that any publisher controls: no database, no other credentials.
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.capture
+      - REDIS_URL
+      - CELERY_BROKER_URL
+      - MEDIAMTX_HLS_PUBLIC_BASE_URL
+      - MEDIAMTX_HLS_CAPTURE_BASE_URL
+      - STREAM_THUMBNAIL_CAPTURE_TIMEOUT_SECONDS
+      - STREAM_THUMBNAIL_REFRESH_SECONDS
+      - STREAM_THUMBNAIL_CACHE_SECONDS
+      - LOG_LEVEL
     restart: unless-stopped
     read_only: true
     tmpfs:
@@ -119,8 +150,6 @@ services:
     command: ["celery", "--app=config", "worker", "--loglevel=INFO", "--queues=thumbnails-quorum", "--concurrency=1", "--without-mingle", "--without-gossip"]
     stop_grace_period: 30s
     depends_on:
-      setup:
-        condition: service_completed_successfully
       redis:
         condition: service_healthy
       rabbitmq:

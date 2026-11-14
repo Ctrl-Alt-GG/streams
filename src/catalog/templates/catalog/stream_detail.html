@@ -8,13 +8,13 @@
   <nav aria-label="{% translate 'Breadcrumb' %}" class="mb-5 text-sm text-zinc-500 dark:text-zinc-400">
     <a href="{% url 'catalog:home' %}" class="font-semibold hover:text-brand-600 dark:hover:text-brand-400">Streams</a>
     <span class="mx-2" aria-hidden="true">/</span>
-    <span aria-current="page">{{ stream.effective_name }}</span>
+    <span aria-current="page" data-stream-name>{{ stream.effective_name }}</span>
   </nav>
 
   <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div class="min-w-0">
       <p class="mb-1.5 text-xs font-bold uppercase tracking-[0.14em] text-brand-600 dark:text-brand-400">{% if stream.audio_only %}{% translate "Station" %}{% else %}{% translate "Channel" %}{% endif %}</p>
-      <h1 class="break-words text-3xl font-black leading-tight text-zinc-950 sm:text-4xl dark:text-white">{{ stream.effective_name }}</h1>
+      <h1 class="break-words text-3xl font-black leading-tight text-zinc-950 sm:text-4xl dark:text-white" data-stream-name>{{ stream.effective_name }}</h1>
     </div>
     {% include "catalog/partials.html#status_badge" with stream=stream only %}
   </div>
@@ -37,7 +37,7 @@
               <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] {% if stream.status == 'live' %}text-brand-300{% else %}text-zinc-400{% endif %}">
                 <span class="size-2 rounded-full {% if stream.status == 'live' %}bg-brand-500 shadow-[0_0_0_4px_rgba(239,68,68,0.16)]{% else %}bg-zinc-500{% endif %}" aria-hidden="true"></span>{% if stream.status == "live" %}{% translate "On air" %}{% else %}{% translate "Off air" %}{% endif %}
               </p>
-              <h2 class="mt-3 break-words text-2xl font-black text-white sm:text-3xl">{{ stream.effective_name }}</h2>
+              <h2 class="mt-3 break-words text-2xl font-black text-white sm:text-3xl" data-stream-name>{{ stream.effective_name }}</h2>
               <p class="mt-2 text-sm text-zinc-300">{% if stream.status == "live" %}{% translate "Live audio stream" %}{% else %}{% translate "This station is offline" %}{% endif %}</p>
               <div class="mt-6 flex h-14 items-center gap-1.5 overflow-hidden rounded-md bg-black/25 px-4 {% if stream.status != 'live' %}opacity-35{% endif %}" aria-hidden="true">
                 <span class="h-3 w-1.5 rounded-full bg-white/35"></span>
@@ -61,7 +61,7 @@
                   class="mt-4 hidden w-full"
                   data-hls-player
                   data-source="{{ stream.hls_url }}"
-                  data-status-url="/api/v1/streams/{{ stream.id }}/"
+                  data-status-url="{% url 'catalog-api:stream-detail' stream.id %}"
                   data-library-message="{% translate 'The player could not load. Reload this page to try again.' %}"
                   data-retry-message="{% translate 'Playback could not start. Retrying...' %}"
                   data-unsupported-message="{% translate 'This browser cannot play this stream.' %}"
@@ -82,11 +82,12 @@
             class="size-full object-contain bg-black"
             data-hls-player
             data-source="{{ stream.hls_url }}"
-            data-status-url="/api/v1/streams/{{ stream.id }}/"
+            data-status-url="{% url 'catalog-api:stream-detail' stream.id %}"
             data-library-message="{% translate 'The player could not load. Reload this page to try again.' %}"
             data-retry-message="{% translate 'Playback could not start. Retrying...' %}"
             data-unsupported-message="{% translate 'This browser cannot play this stream.' %}"
             aria-label="{% translate 'Player' %}: {{ stream.effective_name }}"
+            data-stream-name-label="{% translate 'Player' %}"
             poster="{{ stream.thumbnail_url }}"
             controls autoplay muted playsinline
           ></video>

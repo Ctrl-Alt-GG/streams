@@ -24,4 +24,12 @@ jobs:
       - run: uv run python manage.py check --settings=config.settings.development
       - run: uv run python manage.py makemigrations --check --dry-run --settings=config.settings.development
       - run: uv run python manage.py test catalog --settings=config.settings.test
-      - run: node scripts/player.test.cjs
+      - name: Check the production security settings
+        run: uv run python manage.py check --deploy --fail-level WARNING --settings=config.settings.production
+        env:
+          DJANGO_SECRET_KEY: ci-only-hGq7vX2mKp9sWd4zRt6yBn8cLf3jUa5eQo1iMw0xVk
+          DJANGO_ALLOWED_HOSTS: streams.example.com
+          DJANGO_CSRF_TRUSTED_ORIGINS: https://streams.example.com
+          DATABASE_URL: "sqlite://:memory:"
+          REDIS_URL: redis://localhost:6379/0
+      - run: node --test scripts/*.test.cjs

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from urllib.parse import urljoin
 
@@ -85,18 +85,42 @@ class CatalogProjection:
 
 
 class CatalogService:
-    def list(self, *, public_urls: bool = True) -> CatalogProjection:
+    def list(self, *, public_urls: bool = True, include_unseen: bool = False) -> CatalogProjection:
+        """
+        The channels of the catalog. A channel that hasn't been live for longer than
+        STREAM_HIDE_OFFLINE_AFTER_DAYS is left out, unless `include_unseen`; its own page stays.
+        """
         snapshot = get_snapshot()
         health = get_poll_health() or {}
         source, usable_snapshot = self._source(snapshot, health)
         blocked_paths = BlockedPath.objects.values_list("path_name", flat=True)
         records = Stream.objects.exclude(path_name__in=blocked_paths)
-        streams = tuple(
-            self._project(record, usable_snapshot, source, public_urls=public_urls)
+        projections = [
+            (record, self._project(record, usable_snapshot, source, public_urls=public_urls))
             for record in records
             if is_safe_path(record.path_name)
-        )
+        ]
+        streams = [
+            projection
+            for record, projection in projections
+            if include_unseen or not self._long_unseen(record, projection)
+        ]
         return CatalogProjection(source=source, streams=tuple(sorted(streams, key=self._sort_key)))
+
+    def fresh_snapshot(self) -> dict | None:
+        """The media server's paths, while the last check is recent and succeeded."""
+        source, snapshot = self._source(get_snapshot(), get_poll_health() or {})
+        return snapshot if source.status == "fresh" else None
+
+    @staticmethod
+    def _long_unseen(record: Stream, projection: StreamProjection) -> bool:
+        # Also while the status is unknown, so that an outage of the status source doesn't bring
+        # old channels back. A channel that was live a moment ago was seen at the last check.
+        days = settings.STREAM_HIDE_OFFLINE_AFTER_DAYS
+        if not days or projection.status == "live":
+            return False
+        last_seen = record.last_seen_at or record.created_at
+        return datetime.now(UTC) - last_seen > timedelta(days=days)
 
     def get(
         self, stream_id, *, public_urls: bool = True
@@ -201,14 +225,14 @@ class CatalogService:
         watch_path = reverse("catalog:stream-detail", kwargs={"stream_id": record.id})
         watch_url = self._catalog_url(watch_path, public=public_urls)
         if audio_only:
-            thumbnail_url = audio_thumbnail_url(record.path_name)
+            thumbnail_url = audio_thumbnail_url(record.path_name, public=public_urls)
         elif status == "live":
             thumbnail_path = reverse("catalog:stream-thumbnail", kwargs={"stream_id": record.id})
             thumbnail_url = self._catalog_url(thumbnail_path, public=public_urls)
         elif status == "offline":
-            thumbnail_url = offline_thumbnail_url()
+            thumbnail_url = offline_thumbnail_url(public=public_urls)
         else:
-            thumbnail_url = fallback_thumbnail_url(record.path_name)
+            thumbnail_url = fallback_thumbnail_url(record.path_name, public=public_urls)
         return StreamProjection(
             id=str(record.id),
             path_name=record.path_name,

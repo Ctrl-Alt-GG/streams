@@ -49,6 +49,11 @@ class Stream(models.Model):
         help_text=_("Markdown is supported."),
         verbose_name=_("Description"),
     )
+    # When the media server last had the path live. The catalog leaves out a channel that has
+    # been offline for long, without changing its address.
+    last_seen_at = models.DateTimeField(
+        null=True, blank=True, editable=False, verbose_name=_("Last seen live")
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

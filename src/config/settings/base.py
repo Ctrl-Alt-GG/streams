@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -24,6 +25,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "axes",
     "accounts.apps.AccountsConfig",
     "rest_framework",
     "drf_spectacular",
@@ -41,10 +43,11 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "catalog.middleware.AdminLoginThrottleMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.middleware.csp.ContentSecurityPolicyMiddleware",
+    # Answers a locked-out login. django-axes requires it last.
+    "axes.middleware.AxesMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -87,6 +90,28 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 AUTH_USER_MODEL = "accounts.User"
+AUTHENTICATION_BACKENDS = [
+    # First, so that a locked-out login is refused before its password is checked.
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+# Failed admin logins lock an account for the address they came from only. Someone who fails on
+# purpose with an organizer's username can't lock the organizer out elsewhere, and every address
+# gets five tries per account every fifteen minutes. The count is kept in the cache, in Redis in
+# production: while Redis is down, logins fail instead of going uncounted.
+AXES_HANDLER = "axes.handlers.cache.AxesCacheHandler"
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = timedelta(minutes=15)
+AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
+AXES_RESET_ON_SUCCESS = True
+AXES_CLIENT_IP_CALLABLE = "config.proxies.client_ip_address"
+# The cache handler keeps no records for the admin to show, and needs none of django-axes' tables.
+AXES_ENABLE_ADMIN = False
+MIGRATION_MODULES = {"axes": None}
+# The reverse proxies whose X-Forwarded-For is trusted: the gateway of the compose network, which
+# the host's proxy reaches the published port through.
+TRUSTED_PROXIES = env.list("TRUSTED_PROXIES", default=[])
 
 LANGUAGE_CODE = "hu"
 LANGUAGES = [
@@ -137,6 +162,9 @@ STREAM_THUMBNAIL_CAPTURE_TIMEOUT_SECONDS = env.float(
 STREAM_THUMBNAIL_REFRESH_SECONDS = env.int("STREAM_THUMBNAIL_REFRESH_SECONDS", default=60)
 STREAM_THUMBNAIL_CACHE_SECONDS = env.int("STREAM_THUMBNAIL_CACHE_SECONDS", default=604_800)
 STREAM_THUMBNAIL_LOCK_SECONDS = 8
+# The catalog leaves out a channel that hasn't been live for this many days, as test streams pile
+# up across events. Its page and address stay. 0 keeps every channel.
+STREAM_HIDE_OFFLINE_AFTER_DAYS = env.int("STREAM_HIDE_OFFLINE_AFTER_DAYS", default=14)
 STREAM_THUMBNAIL_SCAN_SECONDS = 15
 STREAM_THUMBNAIL_TASK_EXPIRES_SECONDS = 14
 

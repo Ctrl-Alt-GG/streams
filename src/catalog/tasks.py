@@ -127,7 +127,8 @@ def refresh_mediamtx_snapshot(self) -> str:
                     [Stream(path_name=name) for name in sorted(names)], ignore_conflicts=True
                 )
 
-            observed_at = datetime.now(UTC).isoformat()
+            observed = datetime.now(UTC)
+            observed_at = observed.isoformat()
             paths = {}
             for name in sorted(names):
                 path = active_by_name.get(name)
@@ -155,6 +156,8 @@ def refresh_mediamtx_snapshot(self) -> str:
                     media_kind_updates.append(stream)
             if media_kind_updates:
                 Stream.objects.bulk_update(media_kind_updates, ["media_kind"])
+            live_names = [name for name, path_payload in paths.items() if path_payload["available"]]
+            Stream.objects.filter(path_name__in=live_names).update(last_seen_at=observed)
             write_snapshot({"observed_at": observed_at, "paths": paths})
             record_success(observed_at)
             duration = (datetime.now(UTC) - started_at).total_seconds()
@@ -182,56 +185,56 @@ def refresh_mediamtx_snapshot(self) -> str:
     ignore_result=True,
     acks_late=True,
 )
-def refresh_stream_thumbnail(stream_id: str) -> str:
-    try:
-        stream = Stream.objects.only("id", "path_name", "media_kind").get(pk=stream_id)
-    except Stream.DoesNotExist:
-        return "missing"
-
+def refresh_stream_thumbnail(stream_id: str, path_name: str, media_kind: str) -> str:
+    """
+    Captures a frame of a live video stream. This runs on the capture worker, which decodes
+    video that any publisher controls and therefore has no database: the stream's details come
+    with the task.
+    """
     snapshot = get_snapshot()
     if snapshot is None:
-        return "retained" if get_thumbnail(stream.id) is not None else "fallback"
-    desired_kind = _desired_thumbnail_kind(snapshot, stream.path_name, stream.media_kind)
+        return "retained" if get_thumbnail(stream_id) is not None else "fallback"
+    desired_kind = _desired_thumbnail_kind(snapshot, path_name, media_kind)
     if desired_kind != "frame":
-        delete_thumbnail(stream.id)
+        delete_thumbnail(stream_id)
         return desired_kind
-    if not thumbnail_needs_refresh(stream.id):
+    if not thumbnail_needs_refresh(stream_id):
         return "fresh"
 
-    with thumbnail_lock(stream.id) as acquired:
+    with thumbnail_lock(stream_id) as acquired:
         if not acquired:
             return "locked"
         snapshot = get_snapshot()
         if snapshot is None:
-            return "retained" if get_thumbnail(stream.id) is not None else "fallback"
-        desired_kind = _desired_thumbnail_kind(snapshot, stream.path_name, stream.media_kind)
+            return "retained" if get_thumbnail(stream_id) is not None else "fallback"
+        desired_kind = _desired_thumbnail_kind(snapshot, path_name, media_kind)
         if desired_kind != "frame":
-            delete_thumbnail(stream.id)
+            delete_thumbnail(stream_id)
             return desired_kind
-        if not thumbnail_needs_refresh(stream.id):
+        if not thumbnail_needs_refresh(stream_id):
             return "fresh"
 
         try:
-            content = capture_thumbnail(build_hls_capture_url(stream.path_name))
+            content = capture_thumbnail(build_hls_capture_url(path_name))
         except SoftTimeLimitExceeded:
             raise
         except Exception as error:
             logger.warning(
                 "stream_thumbnail_capture_failed stream_id=%s exception=%s message=%s",
-                stream.id,
+                stream_id,
                 type(error).__name__,
                 error,
             )
         else:
             snapshot = get_snapshot()
-            desired_kind = _desired_thumbnail_kind(snapshot, stream.path_name, stream.media_kind)
+            desired_kind = _desired_thumbnail_kind(snapshot, path_name, media_kind)
             if snapshot is not None and desired_kind != "frame":
-                delete_thumbnail(stream.id)
+                delete_thumbnail(stream_id)
                 return desired_kind
-            write_thumbnail(stream.id, content)
+            write_thumbnail(stream_id, content)
             return "captured"
 
-        thumbnail = get_thumbnail(stream.id)
+        thumbnail = get_thumbnail(stream_id)
         return "retained" if thumbnail is not None else "fallback"
 
 
@@ -251,7 +254,7 @@ def refresh_stream_thumbnails() -> str:
             delete_thumbnail(stream.id)
         elif thumbnail_needs_refresh(stream.id):
             refresh_stream_thumbnail.apply_async(
-                args=(str(stream.id),),
+                args=(str(stream.id), stream.path_name, stream.media_kind),
                 expires=settings.STREAM_THUMBNAIL_TASK_EXPIRES_SECONDS,
             )
             queued += 1

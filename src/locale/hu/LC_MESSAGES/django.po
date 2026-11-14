@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Streams\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-26 00:00+0000\n"
-"PO-Revision-Date: 2026-07-25 00:00+0000\n"
+"PO-Revision-Date: 2026-11-14 00:00+0000\n"
 "Last-Translator: Ctrl-Alt-GG\n"
 "Language-Team: Hungarian\n"
 "Language: hu\n"
@@ -329,3 +329,53 @@ msgstr "Kijelölt streamek elrejtése a listából"
 
 msgid "Selected streams are hidden. Playback remains accessible."
 msgstr "A kijelölt streameket elrejtettük. A lejátszás továbbra is elérhető."
+
+msgid "Audio"
+msgstr "Hang"
+
+msgid "Video"
+msgstr "Videó"
+
+msgid "Last seen live"
+msgstr "Utoljára élőben"
+
+msgid "Hidden"
+msgstr "Elrejtve"
+
+msgid "Unhide selected streams"
+msgstr "Kijelölt streamek újbóli megjelenítése a listában"
+
+msgid "Selected streams are no longer hidden."
+msgstr "A kijelölt streamek már nincsenek elrejtve."
+
+msgid "Delete selected streams that the media server no longer has"
+msgstr "Kijelölt streamek törlése, amelyek már nincsenek a médiaszerveren"
+
+msgid ""
+"Nothing was deleted, as the media server's streams can't be confirmed right "
+"now. Try again in a minute."
+msgstr ""
+"Semmit sem töröltünk, mert a médiaszerver streamjei most nem ellenőrizhetők. "
+"Próbáld újra egy perc múlva."
+
+#, python-format
+msgid "Deleted %(count)d stream."
+msgid_plural "Deleted %(count)d streams."
+msgstr[0] "%(count)d stream törölve."
+msgstr[1] "%(count)d stream törölve."
+
+#, python-format
+msgid "Kept, as the media server still has them: %(names)s"
+msgstr "Megtartva, mert a médiaszerveren még megvannak: %(names)s"
+
+#, python-format
+msgid ""
+"Kept, as hidden streams aren't checked on the media server: %(names)s. "
+"Unhide them, then delete them after the next check."
+msgstr ""
+"Megtartva, mert az elrejtett streameket nem ellenőrizzük a médiaszerveren: "
+"%(names)s. Jelenítsd meg őket újra, majd a következő ellenőrzés után töröld "
+"őket."
+
+msgid "Press Ctrl+C (⌘C on a Mac) to copy the selected text."
+msgstr "A kijelölt szöveg másolásához nyomd meg a Ctrl+C-t (Macen a ⌘C-t)."

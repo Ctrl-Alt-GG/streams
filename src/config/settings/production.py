@@ -27,7 +27,9 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_SSL_REDIRECT = True
-SECURE_REDIRECT_EXEMPT = [r"^health/$"]
+# Other services on the host may read the API and thumbnails over the internal network, without
+# TLS (see "Internal access" in the README).
+SECURE_REDIRECT_EXEMPT = [r"^health/$", *env.list("DJANGO_SECURE_REDIRECT_EXEMPT", default=[])]
 SECURE_HSTS_SECONDS = env.int("DJANGO_SECURE_HSTS_SECONDS", default=31_536_000)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True

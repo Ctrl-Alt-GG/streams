@@ -7,3 +7,6 @@ STORAGES = {
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+# django-axes warns that an in-memory cache isn't shared between processes. The tests run in one;
+# deployments count login failures in Redis.
+SILENCED_SYSTEM_CHECKS = ["axes.W001"]

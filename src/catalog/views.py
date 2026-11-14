@@ -1,8 +1,10 @@
 from django.conf import settings
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
-from django.utils.cache import get_conditional_response, patch_cache_control
-from django.views.decorators.http import require_safe
+from django.urls import reverse
+from django.utils.cache import patch_cache_control
+from django.utils.http import quote_etag
+from django.views.decorators.http import conditional_page, require_safe
 
 from catalog.guides import get_publishing_configuration
 from catalog.models import Stream
@@ -10,12 +12,13 @@ from catalog.services.catalog import CatalogService
 from catalog.services.thumbnails import audio_thumbnail_url, fallback_thumbnail_url, get_thumbnail
 
 
-def _watch_state(source, streams):
+def _watch_state(url, streams):
+    """What the page shows, and where catalog.js checks whether that is still current."""
     return {
-        "source": source.status,
+        "url": url,
         "streams": [
             [stream.id, stream.status, stream.audio_only, stream.effective_name, stream.description]
-            for stream in sorted(streams, key=lambda stream: stream.id)
+            for stream in streams
         ],
     }
 
@@ -26,7 +29,10 @@ def home(request):
     return render(
         request,
         "catalog/home.html",
-        {"catalog": catalog, "watch_state": _watch_state(catalog.source, catalog.streams)},
+        {
+            "catalog": catalog,
+            "watch_state": _watch_state(reverse("catalog-api:stream-list"), catalog.streams),
+        },
     )
 
 
@@ -42,12 +48,15 @@ def stream_detail(request, stream_id):
         {
             "source": source,
             "stream": stream,
-            "watch_state": _watch_state(source, [stream]),
+            "watch_state": _watch_state(
+                reverse("catalog-api:stream-detail", args=[stream.id]), [stream]
+            ),
         },
     )
 
 
 @require_safe
+@conditional_page
 def stream_thumbnail(request, stream_id):
     thumbnail = get_thumbnail(stream_id)
     if thumbnail is None:
@@ -55,25 +64,21 @@ def stream_thumbnail(request, stream_id):
         if stream is None:
             raise Http404
         thumbnail_url = (
-            audio_thumbnail_url(stream.path_name)
+            audio_thumbnail_url(stream.path_name, public=False)
             if stream.media_kind == Stream.MediaKind.AUDIO
-            else fallback_thumbnail_url(stream.path_name)
+            else fallback_thumbnail_url(stream.path_name, public=False)
         )
         response = redirect(thumbnail_url)
         patch_cache_control(response, public=True, max_age=5)
         return response
 
-    content = thumbnail.content
-    content_type = thumbnail.content_type
-    etag = thumbnail.etag
-    max_age = min(30, settings.STREAM_THUMBNAIL_REFRESH_SECONDS)
-
-    quoted_etag = f'"{etag}"'
-    response = HttpResponse(content, content_type=content_type)
-    response.headers["ETag"] = quoted_etag
+    response = HttpResponse(thumbnail.content, content_type=thumbnail.content_type)
+    response.headers["ETag"] = quote_etag(thumbnail.etag)
     response.headers["X-Content-Type-Options"] = "nosniff"
-    patch_cache_control(response, public=True, max_age=max_age)
-    return get_conditional_response(request, etag=quoted_etag, response=response)
+    patch_cache_control(
+        response, public=True, max_age=min(30, settings.STREAM_THUMBNAIL_REFRESH_SECONDS)
+    )
+    return response
 
 
 @require_safe
