@@ -1,7 +1,6 @@
 import logging
 from collections.abc import Iterator
 from contextlib import contextmanager, suppress
-from datetime import UTC, datetime
 from uuid import uuid4
 
 from django.conf import settings
@@ -12,14 +11,7 @@ from redis.exceptions import TimeoutError as RedisTimeoutError
 
 logger = logging.getLogger(__name__)
 
-SNAPSHOT_SCHEMA_VERSION = 1
-SNAPSHOT_KEY = f"catalog:mediamtx:snapshot:v{SNAPSHOT_SCHEMA_VERSION}"
-POLL_HEALTH_KEY = "catalog:mediamtx:poll-health:v1"
 POLL_LOCK_KEY = "catalog:mediamtx:poll-lock:v1"
-
-
-def _now() -> str:
-    return datetime.now(UTC).isoformat()
 
 
 def _sanitize_for_log(value: object) -> str:
@@ -32,64 +24,6 @@ def read_public_cache(key: str) -> object:
     except (RedisConnectionError, RedisTimeoutError) as error:
         logger.warning("catalog_cache_read_failed key=%s error=%s", _sanitize_for_log(key), error)
         return None
-
-
-def get_snapshot() -> dict | None:
-    snapshot = read_public_cache(SNAPSHOT_KEY)
-    if (
-        not isinstance(snapshot, dict)
-        or snapshot.get("schema_version") != SNAPSHOT_SCHEMA_VERSION
-        or not isinstance(snapshot.get("observed_at"), str)
-        or not isinstance(snapshot.get("paths"), dict)
-    ):
-        return None
-    return snapshot
-
-
-def write_snapshot(snapshot: dict) -> None:
-    payload = {**snapshot, "schema_version": SNAPSHOT_SCHEMA_VERSION}
-    cache.set(SNAPSHOT_KEY, payload, timeout=settings.MEDIAMTX_SNAPSHOT_RETENTION_SECONDS)
-
-
-def get_poll_health() -> dict | None:
-    health = read_public_cache(POLL_HEALTH_KEY)
-    return health if isinstance(health, dict) else None
-
-
-def record_attempt() -> None:
-    previous = get_poll_health() or {}
-    health = {
-        "last_attempt_at": _now(),
-        "last_success_at": previous.get("last_success_at"),
-        "last_error_at": previous.get("last_error_at"),
-        "consecutive_failures": previous.get("consecutive_failures", 0),
-        "reason": previous.get("reason"),
-    }
-    cache.set(POLL_HEALTH_KEY, health, timeout=settings.MEDIAMTX_SNAPSHOT_RETENTION_SECONDS)
-
-
-def record_success(observed_at: str) -> None:
-    health = {
-        "last_attempt_at": observed_at,
-        "last_success_at": observed_at,
-        "last_error_at": None,
-        "consecutive_failures": 0,
-        "reason": None,
-    }
-    cache.set(POLL_HEALTH_KEY, health, timeout=settings.MEDIAMTX_SNAPSHOT_RETENTION_SECONDS)
-
-
-def record_failure(reason: str) -> None:
-    previous = get_poll_health() or {}
-    now = _now()
-    health = {
-        "last_attempt_at": now,
-        "last_success_at": previous.get("last_success_at"),
-        "last_error_at": now,
-        "consecutive_failures": previous.get("consecutive_failures", 0) + 1,
-        "reason": reason,
-    }
-    cache.set(POLL_HEALTH_KEY, health, timeout=settings.MEDIAMTX_SNAPSHOT_RETENTION_SECONDS)
 
 
 @contextmanager
@@ -123,4 +57,8 @@ def cache_lock(key: str, timeout: float) -> Iterator[bool]:
 
 
 def reconcile_lock():
+    """
+    Held by a check of the media server, and by anything that must not overlap one, such as
+    deleting streams whose paths a check found gone.
+    """
     return cache_lock(POLL_LOCK_KEY, settings.MEDIAMTX_RECONCILE_LOCK_SECONDS)

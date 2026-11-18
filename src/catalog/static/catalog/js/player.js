@@ -50,23 +50,15 @@
     }
   };
 
+  // Playback failed: the connection dropped, or the stream paused or ended. The player tries the
+  // stream again, less and less often, and keeps playing audio that the visitor started once it
+  // is back. Whether the stream went offline is for catalog.js to say: it reloads the page once a
+  // fresh check of the media server confirms that, while a stale or unknown status changes nothing.
   const scheduleRetry = () => {
     if (suspended) return;
     showMessage(media.dataset.retryMessage);
     window.clearTimeout(retryTimer);
-    retryTimer = window.setTimeout(async () => {
-      try {
-        const response = await fetch(media.dataset.statusUrl, { cache: "no-store", signal: AbortSignal.timeout(5000) });
-        if (response.status === 404) { window.location.reload(); return; }
-        if (!response.ok) throw new Error("Status unavailable");
-        const status = await response.json();
-        if (suspended) return;
-        if (status.result.status !== "live") { window.location.reload(); return; }
-        loadStream();
-      } catch {
-        scheduleRetry();
-      }
-    }, retryDelay);
+    retryTimer = window.setTimeout(() => loadStream(), retryDelay);
     retryDelay = Math.min(retryDelay * 2, 30000);
   };
 

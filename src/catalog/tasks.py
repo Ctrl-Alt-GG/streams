@@ -1,96 +1,26 @@
 import logging
 from datetime import UTC, datetime
-from typing import Any
 
-import httpx
 from celery import shared_task
 from celery.exceptions import SoftTimeLimitExceeded
 from django.conf import settings
-from django.db import transaction
-from pydantic import ValidationError
 
-from catalog.models import BlockedPath, Stream
-from catalog.services.cache import (
-    get_snapshot,
-    reconcile_lock,
-    record_attempt,
-    record_failure,
-    record_success,
-    write_snapshot,
-)
-from catalog.services.media import media_kind_from_tracks
-from catalog.services.mediamtx import ActivePath, MediaMTXClient, MediaMTXSchemaError
-from catalog.services.playback import build_hls_capture_url, is_safe_path
+from catalog.models import Stream
+from catalog.services.observations import read_observation
+from catalog.services.playback import build_hls_capture_url
+from catalog.services.reconciliation import reconcile_media_server
 from catalog.services.thumbnails import (
-    ThumbnailKind,
     capture_thumbnail,
     delete_thumbnail,
+    desired_thumbnail_kind,
     get_thumbnail,
+    thumbnail_generated_at,
     thumbnail_lock,
     thumbnail_needs_refresh,
     write_thumbnail,
 )
 
 logger = logging.getLogger(__name__)
-
-
-def _track(track: dict[str, Any]) -> dict:
-    codec = str(track.get("codec") or track.get("type") or "unknown")
-    codec_props = track.get("codecProps")
-    properties = codec_props if isinstance(codec_props, dict) else track
-    return {
-        "codec": codec,
-        "width": properties.get("width"),
-        "height": properties.get("height"),
-        "sample_rate": properties.get("sampleRate"),
-        "channel_count": properties.get("channelCount"),
-    }
-
-
-def _path_payload(path: ActivePath) -> dict:
-    return {
-        "available": path.available,
-        "available_time": path.available_time,
-        "online": path.online,
-        "online_time": path.online_time,
-        "tracks": [_track(track) for track in path.tracks2],
-        "conf_name": path.conf_name,
-    }
-
-
-def _reason(error: Exception) -> str:
-    if isinstance(error, httpx.TimeoutException | SoftTimeLimitExceeded):
-        return "timeout"
-    if isinstance(error, httpx.HTTPStatusError):
-        if error.response.status_code in {401, 403}:
-            return "auth"
-        return "server"
-    if isinstance(error, httpx.TransportError):
-        return "transport"
-    if isinstance(error, MediaMTXSchemaError | ValidationError):
-        return "schema"
-    return "unknown"
-
-
-def _desired_thumbnail_kind(
-    snapshot: dict | None,
-    path_name: str,
-    media_kind: str = Stream.MediaKind.UNKNOWN,
-) -> ThumbnailKind:
-    if snapshot is None:
-        return "audio" if media_kind == Stream.MediaKind.AUDIO else "fallback"
-    path = snapshot.get("paths", {}).get(path_name)
-    if not isinstance(path, dict):
-        return "audio" if media_kind == Stream.MediaKind.AUDIO else "fallback"
-    observed_media_kind = media_kind_from_tracks(path.get("tracks"))
-    effective_media_kind = (
-        media_kind if observed_media_kind == Stream.MediaKind.UNKNOWN else observed_media_kind
-    )
-    if effective_media_kind == Stream.MediaKind.AUDIO:
-        return "audio"
-    if not path.get("available"):
-        return "offline"
-    return "frame"
 
 
 @shared_task(
@@ -100,84 +30,7 @@ def _desired_thumbnail_kind(
     acks_late=True,
 )
 def refresh_mediamtx_snapshot(self) -> str:
-    with reconcile_lock() as acquired:
-        if not acquired:
-            return "locked"
-        record_attempt()
-        started_at = datetime.now(UTC)
-        try:
-            with MediaMTXClient() as client:
-                active_paths = client.list_active_paths()
-                configured_paths = client.list_configured_paths()
-
-            active_by_name = {path.name: path for path in active_paths}
-            names = set(active_by_name)
-            names.update(
-                path.name
-                for path in configured_paths
-                if not path.name.startswith("~") and path.name not in {"all", "all_others"}
-            )
-            names.difference_update(BlockedPath.objects.values_list("path_name", flat=True))
-            unsafe_names = {name for name in names if not is_safe_path(name)}
-            if unsafe_names:
-                logger.warning("mediamtx_unsafe_paths_skipped count=%d", len(unsafe_names))
-            names.difference_update(unsafe_names)
-            with transaction.atomic():
-                Stream.objects.bulk_create(
-                    [Stream(path_name=name) for name in sorted(names)], ignore_conflicts=True
-                )
-
-            observed = datetime.now(UTC)
-            observed_at = observed.isoformat()
-            paths = {}
-            for name in sorted(names):
-                path = active_by_name.get(name)
-                paths[name] = (
-                    _path_payload(path)
-                    if path
-                    else {
-                        "available": False,
-                        "available_time": None,
-                        "online": False,
-                        "online_time": None,
-                        "tracks": [],
-                        "conf_name": name,
-                    }
-                )
-            streams_by_path = Stream.objects.filter(path_name__in=paths).in_bulk(
-                field_name="path_name"
-            )
-            media_kind_updates = []
-            for name, path_payload in paths.items():
-                media_kind = media_kind_from_tracks(path_payload["tracks"])
-                stream = streams_by_path[name]
-                if media_kind != Stream.MediaKind.UNKNOWN and stream.media_kind != media_kind:
-                    stream.media_kind = media_kind
-                    media_kind_updates.append(stream)
-            if media_kind_updates:
-                Stream.objects.bulk_update(media_kind_updates, ["media_kind"])
-            live_names = [name for name, path_payload in paths.items() if path_payload["available"]]
-            Stream.objects.filter(path_name__in=live_names).update(last_seen_at=observed)
-            write_snapshot({"observed_at": observed_at, "paths": paths})
-            record_success(observed_at)
-            duration = (datetime.now(UTC) - started_at).total_seconds()
-            logger.info(
-                "mediamtx_reconcile_success path_count=%d duration_seconds=%.3f",
-                len(paths),
-                duration,
-            )
-            return "refreshed"
-        except Exception as error:  # Celery must wait for the next scheduled reconciliation.
-            reason = _reason(error)
-            record_failure(reason)
-            logger.warning(
-                "mediamtx_reconcile_failed reason=%s exception=%s message=%s",
-                reason,
-                type(error).__name__,
-                error,
-                exc_info=reason == "unknown",
-            )
-            return "failed"
+    return reconcile_media_server()
 
 
 @shared_task(
@@ -191,10 +44,10 @@ def refresh_stream_thumbnail(stream_id: str, path_name: str, media_kind: str) ->
     video that any publisher controls and therefore has no database: the stream's details come
     with the task.
     """
-    snapshot = get_snapshot()
-    if snapshot is None:
+    observation = read_observation()
+    if observation is None:
         return "retained" if get_thumbnail(stream_id) is not None else "fallback"
-    desired_kind = _desired_thumbnail_kind(snapshot, path_name, media_kind)
+    desired_kind = desired_thumbnail_kind(observation, path_name, media_kind)
     if desired_kind != "frame":
         delete_thumbnail(stream_id)
         return desired_kind
@@ -204,10 +57,10 @@ def refresh_stream_thumbnail(stream_id: str, path_name: str, media_kind: str) ->
     with thumbnail_lock(stream_id) as acquired:
         if not acquired:
             return "locked"
-        snapshot = get_snapshot()
-        if snapshot is None:
+        observation = read_observation()
+        if observation is None:
             return "retained" if get_thumbnail(stream_id) is not None else "fallback"
-        desired_kind = _desired_thumbnail_kind(snapshot, path_name, media_kind)
+        desired_kind = desired_thumbnail_kind(observation, path_name, media_kind)
         if desired_kind != "frame":
             delete_thumbnail(stream_id)
             return desired_kind
@@ -226,9 +79,9 @@ def refresh_stream_thumbnail(stream_id: str, path_name: str, media_kind: str) ->
                 error,
             )
         else:
-            snapshot = get_snapshot()
-            desired_kind = _desired_thumbnail_kind(snapshot, path_name, media_kind)
-            if snapshot is not None and desired_kind != "frame":
+            observation = read_observation()
+            desired_kind = desired_thumbnail_kind(observation, path_name, media_kind)
+            if observation is not None and desired_kind != "frame":
                 delete_thumbnail(stream_id)
                 return desired_kind
             write_thumbnail(stream_id, content)
@@ -244,18 +97,26 @@ def refresh_stream_thumbnail(stream_id: str, path_name: str, media_kind: str) ->
     acks_late=True,
 )
 def refresh_stream_thumbnails() -> str:
-    snapshot = get_snapshot()
-    if snapshot is None:
+    """
+    Queues captures for the live video streams whose thumbnails are due, the oldest first. Only
+    as many as the capture worker manages before the next scan are queued
+    (STREAM_THUMBNAIL_CAPTURES_PER_SCAN): queued captures expire after the scan interval, and
+    with more of them the same streams would expire every time while the others never got theirs.
+    """
+    observation = read_observation()
+    if observation is None:
         return "queued:0"
-    queued = 0
+    oldest = datetime.min.replace(tzinfo=UTC)
+    due = []
     for stream in Stream.objects.only("id", "path_name", "media_kind").iterator():
-        desired_kind = _desired_thumbnail_kind(snapshot, stream.path_name, stream.media_kind)
-        if desired_kind != "frame":
+        if desired_thumbnail_kind(observation, stream.path_name, stream.media_kind) != "frame":
             delete_thumbnail(stream.id)
         elif thumbnail_needs_refresh(stream.id):
-            refresh_stream_thumbnail.apply_async(
-                args=(str(stream.id), stream.path_name, stream.media_kind),
-                expires=settings.STREAM_THUMBNAIL_TASK_EXPIRES_SECONDS,
-            )
-            queued += 1
-    return f"queued:{queued}"
+            due.append((thumbnail_generated_at(stream.id) or oldest, str(stream.id), stream))
+    due.sort(key=lambda entry: entry[:2])
+    for _, _, stream in due[: settings.STREAM_THUMBNAIL_CAPTURES_PER_SCAN]:
+        refresh_stream_thumbnail.apply_async(
+            args=(str(stream.id), stream.path_name, stream.media_kind),
+            expires=settings.STREAM_THUMBNAIL_TASK_EXPIRES_SECONDS,
+        )
+    return f"queued:{min(len(due), settings.STREAM_THUMBNAIL_CAPTURES_PER_SCAN)}"

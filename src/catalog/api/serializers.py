@@ -51,11 +51,15 @@ class StreamDetailEnvelopeSerializer(serializers.Serializer):
 
 class StreamOverlaySerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
+        # Only the submitted fields: the check of the media server writes the others meanwhile.
+        for field, value in validated_data.items():
+            setattr(instance, field, value)
         try:
-            return super().update(instance, validated_data)
+            instance.save_overlay(validated_data)
         except DjangoValidationError as error:
             detail = error.message_dict if hasattr(error, "message_dict") else error.messages
             raise serializers.ValidationError(detail) from error
+        return instance
 
     class Meta:
         model = Stream

@@ -11,14 +11,18 @@ from catalog.models import Stream
 from catalog.services.catalog import CatalogService
 from catalog.services.thumbnails import audio_thumbnail_url, fallback_thumbnail_url, get_thumbnail
 
+# The fields of a stream that the page shows, under the API's names, which catalog.js compares
+# with the API's answers.
+WATCHED_FIELDS = ("id", "status", "audio_only", "effective_name", "description")
+
 
 def _watch_state(url, streams):
     """What the page shows, and where catalog.js checks whether that is still current."""
     return {
         "url": url,
+        "fields": WATCHED_FIELDS,
         "streams": [
-            [stream.id, stream.status, stream.audio_only, stream.effective_name, stream.description]
-            for stream in streams
+            {field: getattr(stream, field) for field in WATCHED_FIELDS} for stream in streams
         ],
     }
 

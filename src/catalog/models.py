@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Iterable
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -30,6 +31,15 @@ class BlockedPath(models.Model):
 
 
 class Stream(models.Model):
+    """
+    A channel of the catalog. Its fields have two writers, which never write each other's:
+    organizers change the editorial fields (`save_overlay`), and the check of the media server
+    creates streams and records what it observes (`catalog.services.reconciliation`), with bulk
+    writes of exactly those fields.
+    """
+
+    EDITORIAL_FIELDS = frozenset({"display_name", "description"})
+
     class MediaKind(models.TextChoices):
         UNKNOWN = "unknown", _("Unknown")
         AUDIO = "audio", _("Audio")
@@ -66,6 +76,18 @@ class Stream(models.Model):
     def save(self, *args, **kwargs) -> None:
         self.full_clean()
         super().save(*args, **kwargs)
+
+    def save_overlay(self, fields: Iterable[str]) -> None:
+        """
+        Saves the editorial `fields` that an organizer changed, and nothing else. What the check of
+        the media server recorded meanwhile, and the fields nobody changed, keep what the database
+        has, also where this copy is older. Two organizers saving the same field keep the later.
+        """
+        changed = sorted(set(fields))
+        if unexpected := set(changed) - self.EDITORIAL_FIELDS:
+            raise ValueError(f"Not editorial fields: {', '.join(sorted(unexpected))}")
+        if changed:
+            self.save(update_fields=[*changed, "updated_at"])
 
     @property
     def effective_name(self) -> str:

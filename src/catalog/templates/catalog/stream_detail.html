@@ -61,7 +61,6 @@
                   class="mt-4 hidden w-full"
                   data-hls-player
                   data-source="{{ stream.hls_url }}"
-                  data-status-url="{% url 'catalog-api:stream-detail' stream.id %}"
                   data-library-message="{% translate 'The player could not load. Reload this page to try again.' %}"
                   data-retry-message="{% translate 'Playback could not start. Retrying...' %}"
                   data-unsupported-message="{% translate 'This browser cannot play this stream.' %}"
@@ -82,7 +81,6 @@
             class="size-full object-contain bg-black"
             data-hls-player
             data-source="{{ stream.hls_url }}"
-            data-status-url="{% url 'catalog-api:stream-detail' stream.id %}"
             data-library-message="{% translate 'The player could not load. Reload this page to try again.' %}"
             data-retry-message="{% translate 'Playback could not start. Retrying...' %}"
             data-unsupported-message="{% translate 'This browser cannot play this stream.' %}"
@@ -109,7 +107,7 @@
       {% if stream.description %}
         <section id="stream-description" class="mt-8 border-t border-zinc-300 pt-7 dark:border-zinc-800" aria-labelledby="stream-description-title">
           <h2 id="stream-description-title" class="text-xl font-black text-zinc-950 dark:text-white">{% translate "About this stream" %}</h2>
-          <div class="mt-4 max-w-4xl leading-7 text-zinc-700 [overflow-wrap:anywhere] [&>*+*]:mt-4 [&_a]:font-semibold [&_a]:text-brand-600 [&_a]:underline [&_a]:underline-offset-[0.2em] [&_blockquote]:border-l-[3px] [&_blockquote]:border-brand-500 [&_blockquote]:pl-4 [&_blockquote]:text-zinc-600 [&_code]:rounded [&_code]:bg-zinc-200 [&_code]:px-[0.35rem] [&_code]:py-[0.15rem] [&_code]:text-[0.9em] [&_h1]:text-xl [&_h1]:font-bold [&_h1]:leading-[1.3] [&_h1]:text-zinc-900 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:leading-[1.3] [&_h2]:text-zinc-900 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:leading-[1.3] [&_h3]:text-zinc-900 [&_li+li]:mt-1.5 [&_ol]:list-decimal [&_ol]:pl-6 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-[#111113] [&_pre]:p-4 [&_pre]:text-zinc-100 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_ul]:list-disc [&_ul]:pl-6 dark:text-zinc-300 dark:[&_a]:text-brand-400 dark:[&_blockquote]:text-zinc-400 dark:[&_code]:bg-zinc-800 dark:[&_h1]:text-zinc-100 dark:[&_h2]:text-zinc-100 dark:[&_h3]:text-zinc-100">{{ stream.description|render_markdown }}</div>
+          <div class="stream-description mt-4">{{ stream.description|render_markdown }}</div>
         </section>
       {% endif %}
     </div>

@@ -2,16 +2,17 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const vm = require('node:vm');
-const { classes } = require('./fake-dom.cjs');
+const { classes, events, timers } = require('./fake-dom.cjs');
 
 function playerHarness(native = true, options = {}) {
   const handlers = new Map();
-  const lifecycle = new Map();
-  const timers = [];
+  const lifecycle = events();
+  const clock = timers();
   const instances = [];
+  const page = { reloads: 0 };
   const media = {
     autoplay: Boolean(options.video), muted: Boolean(options.video), playCount: 0,
-    dataset: { source: 'https://media.example/hls/index.m3u8', statusUrl: '/api/v1/streams/id/',
+    dataset: { source: 'https://media.example/hls/index.m3u8',
       retryMessage: 'retrying', unsupportedMessage: 'unsupported', libraryMessage: 'library missing' },
     classList: classes(),
     canPlayType() { return native ? 'probably' : ''; },
@@ -22,11 +23,11 @@ function playerHarness(native = true, options = {}) {
   const message = { textContent: '', classList: classes() };
   const button = options.video ? null : { classList: classes(), addEventListener(name, callback) { this[name] = callback; } };
   const window = {
-    setTimeout(callback, delay) { timers.push({ callback, delay }); return timers.length; },
-    clearTimeout() {},
-    addEventListener(name, callback) { lifecycle.set(name, callback); },
-    location: { href: "https://catalog.example/streams/id/", origin: "https://catalog.example", reload() { throw new Error('unexpected reload'); } },
-    crypto: { randomUUID: () => "test-token" },
+    setTimeout: clock.setTimeout,
+    clearTimeout: clock.clearTimeout,
+    addEventListener: lifecycle.addEventListener,
+    location: { href: 'https://catalog.example/streams/id/', origin: 'https://catalog.example', reload() { page.reloads += 1; } },
+    crypto: { randomUUID: () => 'test-token' },
   };
   if (options.hls) {
     class FakeHls {
@@ -46,27 +47,42 @@ function playerHarness(native = true, options = {}) {
       '[data-audio-start]': button }[selector];
   } };
   vm.runInNewContext(readFileSync('src/catalog/static/catalog/js/player.js', 'utf8'), {
-    document, window, AbortSignal, URL,
-    fetch: async () => ({ ok: true, json: async () => ({ result: { status: 'live' } }) }),
+    document, window, URL,
+    fetch: () => { throw new Error('The player asks no API.'); },
   });
-  return { handlers, lifecycle, timers, media, message, button, instances };
+  return { handlers, lifecycle, clock, media, message, button, instances, page };
 }
 
-test('native HLS retries replace listeners and resume after bfcache navigation', async () => {
+test('native HLS retries replace listeners and resume after bfcache navigation', () => {
   const player = playerHarness();
   player.button.click();
   const firstReady = player.handlers.get('loadedmetadata');
   player.handlers.get('error')();
-  assert.equal(player.timers.at(-1).delay, 2000);
-  await player.timers.at(-1).callback();
+  assert.equal(player.clock.pending.at(-1).delay, 2000);
+  player.clock.runNext();
   assert.equal(player.handlers.size, 2);
   assert.equal(player.handlers.get('loadedmetadata'), firstReady);
   player.handlers.get('error')();
-  assert.equal(player.timers.at(-1).delay, 4000);
-  player.lifecycle.get('pagehide')();
+  assert.equal(player.clock.pending.at(-1).delay, 4000);
+  player.lifecycle.dispatch('pagehide');
+  assert.equal(player.clock.pending.length, 0);
   player.handlers.clear();
-  player.lifecycle.get('pageshow')({ persisted: true });
+  player.lifecycle.dispatch('pageshow', { persisted: true });
   assert.equal(player.handlers.size, 2);
+});
+
+test('audio that failed plays on once the stream is back, without reloading the page', () => {
+  const player = playerHarness();
+  player.button.click();
+  player.handlers.get('loadedmetadata')();
+  assert.equal(player.media.playCount, 1);
+  player.handlers.get('error')();
+  assert.equal(player.message.textContent, 'retrying');
+  player.clock.runNext();
+  player.handlers.get('loadedmetadata')();
+  assert.equal(player.media.playCount, 2);
+  assert.equal(player.message.classList.contains('hidden'), true);
+  assert.equal(player.page.reloads, 0);
 });
 
 test('missing player library explains the load failure', () => {
@@ -81,14 +97,14 @@ test('native video loads media directly, autoplays muted, and resumes after bfca
   assert.equal(player.media.muted, true);
   player.handlers.get('loadedmetadata')();
   assert.equal(player.media.playCount, 1);
-  player.lifecycle.get('pagehide')();
+  player.lifecycle.dispatch('pagehide');
   assert.equal(player.handlers.size, 0);
-  player.lifecycle.get('pageshow')({ persisted: true });
+  player.lifecycle.dispatch('pageshow', { persisted: true });
   player.handlers.get('loadedmetadata')();
   assert.equal(player.media.playCount, 2);
 });
 
-test('bundled Hls.js video attaches media, scopes requests, retries and resumes', async () => {
+test('bundled Hls.js video attaches media, scopes requests, retries and resumes', () => {
   const player = playerHarness(false, { video: true, hls: true });
   assert.equal(player.instances.length, 1);
   const first = player.instances[0];
@@ -102,10 +118,20 @@ test('bundled Hls.js video attaches media, scopes requests, retries and resumes'
   assert.equal(openedUrl.searchParams.get('_streams_playback'), 'test-token');
   first.events.get('error')(null, { fatal: true, type: 'network' });
   assert.equal(first.destroyed, true);
-  await player.timers.at(-1).callback();
+  player.clock.runNext();
   assert.equal(player.instances.length, 2);
-  player.lifecycle.get('pagehide')();
+  player.lifecycle.dispatch('pagehide');
   assert.equal(player.instances[1].destroyed, true);
-  player.lifecycle.get('pageshow')({ persisted: true });
+  player.lifecycle.dispatch('pageshow', { persisted: true });
   assert.equal(player.instances.length, 3);
+  assert.equal(player.page.reloads, 0);
+});
+
+test('leaving the page cancels a retry that is waiting', () => {
+  const player = playerHarness(false, { video: true, hls: true });
+  player.instances[0].events.get('error')(null, { fatal: true, type: 'network' });
+  assert.equal(player.clock.pending.length, 1);
+  player.lifecycle.dispatch('pagehide');
+  assert.equal(player.clock.pending.length, 0);
+  assert.equal(player.instances.length, 1);
 });

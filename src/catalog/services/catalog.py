@@ -1,14 +1,24 @@
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from hashlib import sha256
+from typing import Any, Literal
 from urllib.parse import urljoin
 
 from django.conf import settings
+from django.db.models import Q, QuerySet
 from django.urls import reverse
 
 from catalog.models import BlockedPath, Stream
-from catalog.services.cache import get_poll_health, get_snapshot
-from catalog.services.media import media_kind_from_tracks
+from catalog.services.media import effective_media_kind
+from catalog.services.observations import (
+    MediaTrack,
+    Observation,
+    ObservationState,
+    SourceStatus,
+    observation_state,
+    utc_now,
+)
 from catalog.services.playback import build_hls_url, is_safe_path
 from catalog.services.thumbnails import (
     audio_thumbnail_url,
@@ -36,13 +46,7 @@ _STREAM_EMOJIS = (
 )
 
 
-@dataclass(frozen=True, slots=True)
-class Track:
-    codec: str
-    width: int | None = None
-    height: int | None = None
-    sample_rate: int | None = None
-    channel_count: int | None = None
+StreamStatus = Literal["live", "offline", "unknown"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,11 +56,11 @@ class StreamProjection:
     display_name: str
     description: str
     effective_name: str
-    status: str
+    status: StreamStatus
     available: bool | None
     online: bool | None
     audio_only: bool
-    tracks: tuple[Track, ...]
+    tracks: tuple[MediaTrack, ...]
     observed_at: str | None
     stale: bool
     watch_url: str
@@ -72,7 +76,7 @@ class StreamProjection:
 
 @dataclass(frozen=True, slots=True)
 class SourceProjection:
-    status: str
+    status: SourceStatus
     observed_at: str | None
     age_seconds: float | None
     failure_count: int
@@ -84,144 +88,106 @@ class CatalogProjection:
     streams: tuple[StreamProjection, ...]
 
 
+# What a projection reads of a stream.
+_PROJECTED_FIELDS = ("id", "path_name", "display_name", "description", "media_kind")
+
+
+def stream_status(path_name: str, observation: Observation | None) -> StreamStatus:
+    if observation is None:
+        return "unknown"
+    return "live" if observation.is_live(path_name) else "offline"
+
+
 class CatalogService:
+    """
+    The catalog as pages and the API show it: the streams with what the last check of the media
+    server observed. `read_state` and `now` are where the observations and the time come from.
+    """
+
+    def __init__(
+        self,
+        *,
+        read_state: Callable[[], ObservationState] = observation_state,
+        now: Callable[[], datetime] = utc_now,
+    ) -> None:
+        self._read_state = read_state
+        self._now = now
+
     def list(self, *, public_urls: bool = True, include_unseen: bool = False) -> CatalogProjection:
         """
         The channels of the catalog. A channel that hasn't been live for longer than
         STREAM_HIDE_OFFLINE_AFTER_DAYS is left out, unless `include_unseen`; its own page stays.
         """
-        snapshot = get_snapshot()
-        health = get_poll_health() or {}
-        source, usable_snapshot = self._source(snapshot, health)
-        blocked_paths = BlockedPath.objects.values_list("path_name", flat=True)
-        records = Stream.objects.exclude(path_name__in=blocked_paths)
-        projections = [
-            (record, self._project(record, usable_snapshot, source, public_urls=public_urls))
-            for record in records
+        state = self._read_state()
+        records = self._visible_records()
+        if not include_unseen:
+            records = self._recently_seen(records, state.observation)
+        streams = [
+            self._project(record, state, public_urls=public_urls)
+            for record in records.only(*_PROJECTED_FIELDS)
             if is_safe_path(record.path_name)
         ]
-        streams = [
-            projection
-            for record, projection in projections
-            if include_unseen or not self._long_unseen(record, projection)
-        ]
-        return CatalogProjection(source=source, streams=tuple(sorted(streams, key=self._sort_key)))
+        return CatalogProjection(
+            source=self._source(state), streams=tuple(sorted(streams, key=self._sort_key))
+        )
 
-    def fresh_snapshot(self) -> dict | None:
-        """The media server's paths, while the last check is recent and succeeded."""
-        source, snapshot = self._source(get_snapshot(), get_poll_health() or {})
-        return snapshot if source.status == "fresh" else None
-
-    @staticmethod
-    def _long_unseen(record: Stream, projection: StreamProjection) -> bool:
-        # Also while the status is unknown, so that an outage of the status source doesn't bring
-        # old channels back. A channel that was live a moment ago was seen at the last check.
-        days = settings.STREAM_HIDE_OFFLINE_AFTER_DAYS
-        if not days or projection.status == "live":
-            return False
-        last_seen = record.last_seen_at or record.created_at
-        return datetime.now(UTC) - last_seen > timedelta(days=days)
+    def statuses(self, records: Iterable[Stream]) -> dict[Any, StreamStatus]:
+        """Whether each of `records` is live, by primary key, without projecting them."""
+        observation = self._read_state().observation
+        return {record.pk: stream_status(record.path_name, observation) for record in records}
 
     def get(
         self, stream_id, *, public_urls: bool = True
     ) -> tuple[SourceProjection, StreamProjection]:
-        blocked_paths = BlockedPath.objects.values_list("path_name", flat=True)
-        record = Stream.objects.exclude(path_name__in=blocked_paths).get(pk=stream_id)
+        record = self._visible_records().get(pk=stream_id)
         if not is_safe_path(record.path_name):
             raise Stream.DoesNotExist
-        source, snapshot = self._source(get_snapshot(), get_poll_health() or {})
-        return source, self._project(record, snapshot, source, public_urls=public_urls)
+        state = self._read_state()
+        return self._source(state), self._project(record, state, public_urls=public_urls)
 
-    def _source(self, snapshot: dict | None, health: dict) -> tuple[SourceProjection, dict | None]:
-        if not snapshot:
-            return (
-                SourceProjection(
-                    status="unavailable",
-                    observed_at=None,
-                    age_seconds=None,
-                    failure_count=health.get("consecutive_failures", 0),
-                ),
-                None,
-            )
+    @staticmethod
+    def _visible_records() -> QuerySet[Stream]:
+        blocked_paths = BlockedPath.objects.values_list("path_name", flat=True)
+        return Stream.objects.exclude(path_name__in=blocked_paths)
 
-        observed_at = snapshot.get("observed_at")
-        try:
-            observed = datetime.fromisoformat(observed_at)
-            if observed.tzinfo is None:
-                observed = observed.replace(tzinfo=UTC)
-            age = max(0.0, (datetime.now(UTC) - observed).total_seconds())
-        except TypeError, ValueError:
-            return (
-                SourceProjection(
-                    status="unavailable",
-                    observed_at=None,
-                    age_seconds=None,
-                    failure_count=health.get("consecutive_failures", 0),
-                ),
-                None,
-            )
-
-        last_error = health.get("last_error_at")
-        last_success = health.get("last_success_at")
-        source_status = (
-            "stale"
-            if age >= settings.MEDIAMTX_FRESHNESS_SECONDS
-            or (last_error and (not last_success or last_error > last_success))
-            else "fresh"
+    def _recently_seen(
+        self, records: QuerySet[Stream], observation: Observation | None
+    ) -> QuerySet[Stream]:
+        # Also while the status is unknown, so that an outage of the status source doesn't bring
+        # old channels back. A channel that was live a moment ago was seen at the last check.
+        days = settings.STREAM_HIDE_OFFLINE_AFTER_DAYS
+        if not days:
+            return records
+        cutoff = self._now() - timedelta(days=days)
+        live_paths = (
+            [name for name, path in observation.paths.items() if path.available]
+            if observation is not None
+            else []
         )
-        return (
-            SourceProjection(
-                status=source_status,
-                observed_at=observed_at,
-                age_seconds=round(age, 3),
-                failure_count=health.get("consecutive_failures", 0),
+        return records.filter(
+            Q(last_seen_at__gte=cutoff)
+            | Q(last_seen_at__isnull=True, created_at__gte=cutoff)
+            | Q(path_name__in=live_paths)
+        )
+
+    @staticmethod
+    def _source(state: ObservationState) -> SourceProjection:
+        return SourceProjection(
+            status=state.status,
+            observed_at=(
+                state.observation.observed_at.isoformat() if state.observation is not None else None
             ),
-            snapshot,
+            age_seconds=state.age_seconds,
+            failure_count=state.failure_count,
         )
 
     def _project(
-        self,
-        record: Stream,
-        snapshot: dict | None,
-        source: SourceProjection,
-        *,
-        public_urls: bool,
+        self, record: Stream, state: ObservationState, *, public_urls: bool
     ) -> StreamProjection:
-        path_data = snapshot.get("paths", {}).get(record.path_name) if snapshot else None
-        path = path_data if isinstance(path_data, dict) else None
-        if snapshot is None:
-            status = "unknown"
-            available = None
-            online = None
-            audio_only = record.media_kind == Stream.MediaKind.AUDIO
-            tracks = ()
-        else:
-            available = bool(path and path.get("available"))
-            online = path.get("online") if path else False
-            status = "live" if available else "offline"
-            raw_tracks = (path or {}).get("tracks", [])
-            observed_media_kind = media_kind_from_tracks(raw_tracks)
-            media_kind = (
-                record.media_kind
-                if observed_media_kind == Stream.MediaKind.UNKNOWN
-                else observed_media_kind
-            )
-            audio_only = media_kind == Stream.MediaKind.AUDIO
-            tracks = (
-                tuple(
-                    Track(
-                        codec=str(track.get("codec") or "unknown"),
-                        width=track.get("width"),
-                        height=track.get("height"),
-                        sample_rate=track.get("sample_rate"),
-                        channel_count=track.get("channel_count"),
-                    )
-                    for track in raw_tracks
-                    if isinstance(track, dict)
-                )
-                if isinstance(raw_tracks, list)
-                else ()
-            )
+        observation = state.observation
+        path = observation.path(record.path_name) if observation is not None else None
+        status = stream_status(record.path_name, observation)
+        audio_only = effective_media_kind(record.media_kind, path) == "audio"
         watch_path = reverse("catalog:stream-detail", kwargs={"stream_id": record.id})
         watch_url = self._catalog_url(watch_path, public=public_urls)
         if audio_only:
@@ -240,12 +206,12 @@ class CatalogService:
             description=record.description,
             effective_name=record.effective_name,
             status=status,
-            available=available,
-            online=online,
+            available=None if observation is None else status == "live",
+            online=None if observation is None else (path.online if path is not None else False),
             audio_only=audio_only,
-            tracks=tracks,
-            observed_at=source.observed_at,
-            stale=source.status != "fresh",
+            tracks=path.tracks if path is not None else (),
+            observed_at=self._source(state).observed_at,
+            stale=state.status != "fresh",
             watch_url=watch_url,
             thumbnail_url=thumbnail_url,
             hls_url=build_hls_url(record.path_name) if status == "live" else None,

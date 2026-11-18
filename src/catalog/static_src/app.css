@@ -23,3 +23,46 @@
   --color-brand-700: #770000;
   --color-brand-800: #560000;
 }
+/* A description that organizers write in Markdown, on its stream's page. */
+@layer components {
+  .stream-description {
+    @apply max-w-4xl leading-7 text-zinc-700 [overflow-wrap:anywhere] dark:text-zinc-300;
+
+    & > * + * {
+      @apply mt-4;
+    }
+    & a {
+      @apply font-semibold text-brand-600 underline underline-offset-[0.2em] dark:text-brand-400;
+    }
+    & blockquote {
+      @apply border-l-[3px] border-brand-500 pl-4 text-zinc-600 dark:text-zinc-400;
+    }
+    & code {
+      @apply rounded bg-zinc-200 px-[0.35rem] py-[0.15rem] text-[0.9em] dark:bg-zinc-800;
+    }
+    & :is(h1, h2, h3) {
+      @apply text-lg font-bold leading-[1.3] text-zinc-900 dark:text-zinc-100;
+    }
+    & h1 {
+      @apply text-xl;
+    }
+    & :is(ol, ul) {
+      @apply pl-6;
+    }
+    & ol {
+      @apply list-decimal;
+    }
+    & ul {
+      @apply list-disc;
+    }
+    & li + li {
+      @apply mt-1.5;
+    }
+    & pre {
+      @apply overflow-x-auto rounded-md bg-[#111113] p-4 text-zinc-100;
+    }
+    & pre code {
+      @apply bg-transparent p-0;
+    }
+  }
+}

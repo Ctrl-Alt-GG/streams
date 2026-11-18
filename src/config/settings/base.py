@@ -72,6 +72,7 @@ TEMPLATES = [
 DATABASES = {"default": env.db("DATABASE_URL", default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")}
 CACHES = {
     "default": {
+        # django-redis, for its atomic locks and JSON-only serialization.
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": env("REDIS_URL", default="redis://localhost:6379/0"),
         "OPTIONS": {
@@ -152,7 +153,15 @@ MEDIAMTX_HLS_CAPTURE_BASE_URL = env(
 MEDIAMTX_RTMP_PUBLIC_BASE_URL = env(
     "MEDIAMTX_RTMP_PUBLIC_BASE_URL", default="rtmps://streams.invalid"
 )
+# Timing of the status worker. It checks the media server every
+# MEDIAMTX_RECONCILE_INTERVAL_SECONDS, and a check has MEDIAMTX_RECONCILE_BUDGET_SECONDS in all,
+# however many pages the media server answers with: less than Celery's soft limit, which stops
+# the task (CELERY_TASK_SOFT_TIME_LIMIT). The catalog trusts a check for MEDIAMTX_FRESHNESS_SECONDS
+# and keeps it for MEDIAMTX_SNAPSHOT_RETENTION_SECONDS, which pages show as stale. Locks last longer
+# than a task can run (CELERY_TASK_TIME_LIMIT), so none expires under work that is still going on.
+# `catalog.checks` refuses settings that break these relations.
 MEDIAMTX_RECONCILE_INTERVAL_SECONDS = 10
+MEDIAMTX_RECONCILE_BUDGET_SECONDS = 6.0
 MEDIAMTX_RECONCILE_LOCK_SECONDS = 15
 MEDIAMTX_FRESHNESS_SECONDS = 15
 MEDIAMTX_SNAPSHOT_RETENTION_SECONDS = env.int("MEDIAMTX_SNAPSHOT_RETENTION_SECONDS", default=3_600)
@@ -161,12 +170,15 @@ STREAM_THUMBNAIL_CAPTURE_TIMEOUT_SECONDS = env.float(
 )
 STREAM_THUMBNAIL_REFRESH_SECONDS = env.int("STREAM_THUMBNAIL_REFRESH_SECONDS", default=60)
 STREAM_THUMBNAIL_CACHE_SECONDS = env.int("STREAM_THUMBNAIL_CACHE_SECONDS", default=604_800)
-STREAM_THUMBNAIL_LOCK_SECONDS = 8
+STREAM_THUMBNAIL_LOCK_SECONDS = 12
 # The catalog leaves out a channel that hasn't been live for this many days, as test streams pile
 # up across events. Its page and address stay. 0 keeps every channel.
 STREAM_HIDE_OFFLINE_AFTER_DAYS = env.int("STREAM_HIDE_OFFLINE_AFTER_DAYS", default=14)
 STREAM_THUMBNAIL_SCAN_SECONDS = 15
 STREAM_THUMBNAIL_TASK_EXPIRES_SECONDS = 14
+# How many captures a scan queues: what the single capture worker manages before the next scan,
+# one capture at a time of up to STREAM_THUMBNAIL_CAPTURE_TIMEOUT_SECONDS.
+STREAM_THUMBNAIL_CAPTURES_PER_SCAN = env.int("STREAM_THUMBNAIL_CAPTURES_PER_SCAN", default=3)
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [

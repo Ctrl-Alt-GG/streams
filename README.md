@@ -10,9 +10,10 @@ upstream schema error, retaining the last successful snapshot. Invalid or overlo
 publisher paths are skipped, so one publisher cannot take down the directory.
 Stream records and links survive disconnects. Administrators can hide channels
 from the stream list and unhide them; hiding a channel does not restrict playback at
-the media server. They can delete channels, one at a time or with a bulk action,
-while a recent, successful check of the media server confirms that their paths are
-gone. Hidden channels have to be unhidden first, as the check leaves them out.
+the media server. They can delete channels with the list's bulk action, while a
+recent, successful check of the media server confirms that their paths are gone
+and no other check is under way. Hidden channels have to be unhidden first, as the
+check leaves them out.
 A channel that hasn't been live for `STREAM_HIDE_OFFLINE_AFTER_DAYS` days (14 by
 default, 0 keeps every channel) leaves the catalog; its page and address stay.
 
@@ -76,13 +77,22 @@ from publishers, runs with `config.settings.capture`: no database, and only
 `REDIS_URL`, `CELERY_BROKER_URL`, the `MEDIAMTX_HLS_*` addresses, the
 `STREAM_THUMBNAIL_*` settings and `LOG_LEVEL`.
 
+A check of the media server has `MEDIAMTX_RECONCILE_BUDGET_SECONDS` (six) in all,
+however many pages of paths it reads, and ends before Celery stops the task. Each thumbnail scan queues at most
+`STREAM_THUMBNAIL_CAPTURES_PER_SCAN` captures (3 by default, what one capture worker
+manages between scans), the oldest thumbnails first. `manage.py check` refuses
+addresses without a supported scheme and durations that contradict each other; the
+timing settings and how they relate are described in `config/settings/base.py`.
+
 Catalog and channel pages check the status every ten seconds. The catalog reloads
 when a channel appears or goes away, or when a fresh status check reports a change.
 A channel page reloads only for a status change that a fresh check confirms, so
 playback continues while the status source is briefly unavailable, for example
 during a Redis restart. A new display name appears in place; a new description
-waits for the next visit while the player is on the page. Audio retries verify
-that the channel is still live, with exponential backoff.
+waits for the next visit while the player is on the page. When playback fails, the
+player tries the stream again with exponential backoff and keeps playing audio that
+was started once the stream is back; the page reloads only when a fresh check
+confirms that the channel went offline.
 
 The publishing guide shows credential placeholders; actual credentials come from
 the event organizer. Special characters in RTMP
@@ -131,12 +141,30 @@ uv run python manage.py test catalog --settings=config.settings.test
 node --test scripts/*.test.cjs
 ```
 
+Tests tagged `integration` need PostgreSQL and Redis, for concurrent writes, locks
+between processes and migrations of existing rows. `DATABASE_URL` names a server the
+tests may create a database on, and `REDIS_URL` a Redis database they may empty:
+
+```sh
+uv run python manage.py test catalog --tag integration --settings=config.settings.integration
+```
+
+Tests tagged `browser` run the player in Chromium against streams they encode
+themselves, VP9 and Opus in fMP4 segments as the media server serves HLS: video,
+starting audio, recovering after the stream failed, and going back to a page.
+They run with `STREAMS_BROWSER_TESTS=1`, after `uv run playwright install chromium`:
+
+```sh
+STREAMS_BROWSER_TESTS=1 uv run python manage.py test catalog --tag browser --settings=config.settings.test
+```
+
 CI also runs `manage.py check --deploy --fail-level WARNING` with the production
 settings and placeholder values for their required variables.
 
-Tests use in-memory SQLite and an isolated in-memory cache; deployed processes use
-Redis. Public cache reads degrade to unknown status and fallback thumbnails when
+The other tests use in-memory SQLite and an isolated in-memory cache, and skip the
+integration and browser tests; deployed processes use Redis. Public cache reads degrade to unknown status and fallback thumbnails when
 Redis is unreachable; login limits and worker locks retain strict failure
 behavior: admin logins fail while Redis is down. Removing staff status immediately revokes API editing even if a user
-retains a model permission and an existing session. Image publishing waits for these checks. End-to-end playback still requires
-the real MediaMTX server and valid publisher credentials.
+retains a model permission and an existing session. Image publishing waits for these checks. Playback from the real MediaMTX server,
+with the codecs publishers send, still needs that server and valid publisher
+credentials.

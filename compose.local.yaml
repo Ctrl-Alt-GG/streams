@@ -2,19 +2,22 @@ services:
   setup:
     build:
       context: .
-      dockerfile: docker/web.Dockerfile
+      dockerfile: docker/Dockerfile
+      target: web
     pull_policy: build
 
   web:
     build:
       context: .
-      dockerfile: docker/web.Dockerfile
+      dockerfile: docker/Dockerfile
+      target: web
     pull_policy: build
 
   worker:
     build:
       context: .
-      dockerfile: docker/worker.Dockerfile
+      dockerfile: docker/Dockerfile
+      target: worker
     pull_policy: build
     extra_hosts:
       - host.docker.internal:host-gateway
@@ -22,7 +25,8 @@ services:
   capture:
     build:
       context: .
-      dockerfile: docker/worker.Dockerfile
+      dockerfile: docker/Dockerfile
+      target: worker
     pull_policy: build
     extra_hosts:
       - host.docker.internal:host-gateway
@@ -30,5 +34,6 @@ services:
   beat:
     build:
       context: .
-      dockerfile: docker/beat.Dockerfile
+      dockerfile: docker/Dockerfile
+      target: beat
     pull_policy: build

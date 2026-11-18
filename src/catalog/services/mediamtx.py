@@ -1,10 +1,13 @@
 import ssl
-from collections.abc import Iterator
+import time
+from collections.abc import Callable, Iterator
 from typing import Any, TypeVar
 
 import httpx
 from django.conf import settings
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
+
+from catalog.services.observations import MediaTracks
 
 
 class MediaMTXError(Exception):
@@ -25,7 +28,7 @@ class ActivePath(BaseModel):
     online: bool | None = None
     online_time: str | None = Field(default=None, alias="onlineTime")
     source: dict[str, Any] | None = None
-    tracks2: list[dict[str, Any]] = Field(default_factory=list)
+    tracks2: MediaTracks = Field(default_factory=list)
     readers: list[dict[str, Any]] = Field(default_factory=list)
     inbound_bytes: int = Field(default=0, alias="inboundBytes", ge=0)
     outbound_bytes: int = Field(default=0, alias="outboundBytes", ge=0)
@@ -49,16 +52,21 @@ ItemT = TypeVar("ItemT", ActivePath, ConfiguredPath)
 
 
 class MediaMTXClient:
-    def __init__(self, client: httpx.Client | None = None) -> None:
+    """
+    Reads the media server's paths. A `deadline` (by `clock`, `time.monotonic` by default) bounds
+    everything a call does: each request gets the time that is left, and none starts after it.
+    """
+
+    def __init__(
+        self, client: httpx.Client | None = None, *, clock: Callable[[], float] = time.monotonic
+    ) -> None:
+        self._clock = clock
         self._owns_client = client is None
         verify: bool | ssl.SSLContext = settings.MEDIAMTX_API_VERIFY_TLS
         if settings.MEDIAMTX_API_CA_BUNDLE:
             verify = ssl.create_default_context(cafile=settings.MEDIAMTX_API_CA_BUNDLE)
-        timeout = httpx.Timeout(
-            connect=settings.MEDIAMTX_API_CONNECT_TIMEOUT,
-            read=settings.MEDIAMTX_API_READ_TIMEOUT,
-            write=settings.MEDIAMTX_API_READ_TIMEOUT,
-            pool=settings.MEDIAMTX_API_CONNECT_TIMEOUT,
+        timeout = _timeout(
+            settings.MEDIAMTX_API_CONNECT_TIMEOUT, settings.MEDIAMTX_API_READ_TIMEOUT
         )
         self._client = client or httpx.Client(
             base_url=f"{settings.MEDIAMTX_API_BASE_URL.rstrip('/')}/",
@@ -79,19 +87,34 @@ class MediaMTXClient:
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.close()
 
-    def list_active_paths(self) -> list[ActivePath]:
-        return list(self._paginate("v3/paths/list", ActivePath))
+    def list_active_paths(self, *, deadline: float | None = None) -> list[ActivePath]:
+        return list(self._paginate("v3/paths/list", ActivePath, deadline))
 
-    def list_configured_paths(self) -> list[ConfiguredPath]:
-        return list(self._paginate("v3/config/paths/list", ConfiguredPath))
+    def list_configured_paths(self, *, deadline: float | None = None) -> list[ConfiguredPath]:
+        return list(self._paginate("v3/config/paths/list", ConfiguredPath, deadline))
 
-    def _paginate(self, endpoint: str, item_type: type[ItemT]) -> Iterator[ItemT]:
+    def _request_timeout(self, deadline: float | None) -> httpx.Timeout | None:
+        if deadline is None:
+            return None
+        remaining = deadline - self._clock()
+        if remaining <= 0:
+            raise httpx.TimeoutException("The check of the media server ran out of time.")
+        return _timeout(
+            min(settings.MEDIAMTX_API_CONNECT_TIMEOUT, remaining),
+            min(settings.MEDIAMTX_API_READ_TIMEOUT, remaining),
+        )
+
+    def _paginate(
+        self, endpoint: str, item_type: type[ItemT], deadline: float | None
+    ) -> Iterator[ItemT]:
         page_number = 0
         seen: dict[str, ItemT] = {}
         while True:
+            timeout = self._request_timeout(deadline)
             response = self._client.get(
                 endpoint,
                 params={"page": page_number, "itemsPerPage": 100},
+                **({"timeout": timeout} if timeout is not None else {}),
             )
             response.raise_for_status()
             try:
@@ -115,3 +138,7 @@ class MediaMTXClient:
                 break
 
         yield from seen.values()
+
+
+def _timeout(connect: float, read: float) -> httpx.Timeout:
+    return httpx.Timeout(connect=connect, read=read, write=read, pool=connect)

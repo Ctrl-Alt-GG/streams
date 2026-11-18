@@ -358,6 +358,13 @@ msgstr ""
 "Semmit sem töröltünk, mert a médiaszerver streamjei most nem ellenőrizhetők. "
 "Próbáld újra egy perc múlva."
 
+msgid ""
+"Nothing was deleted, as the media server is being checked right now. Try "
+"again in a moment."
+msgstr ""
+"Semmit sem töröltünk, mert a médiaszerver ellenőrzése éppen folyamatban van. "
+"Próbáld újra egy pillanat múlva."
+
 #, python-format
 msgid "Deleted %(count)d stream."
 msgid_plural "Deleted %(count)d streams."

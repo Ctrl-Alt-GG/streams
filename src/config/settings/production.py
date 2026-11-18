@@ -1,5 +1,5 @@
 from config.settings.base import *  # noqa: F403
-from config.settings.base import env
+from config.settings.base import CACHES, env
 
 ENVIRONMENT = "production"
 DEBUG = False
@@ -8,20 +8,7 @@ ALLOWED_HOSTS = [*env.list("DJANGO_ALLOWED_HOSTS"), "127.0.0.1"]
 CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS")
 DATABASES = {"default": env.db("DATABASE_URL")}
 
-REDIS_URL = env("REDIS_URL")
-CACHES = {
-    "default": {
-        # Keep django-redis for its atomic lock API and JSON-only serialization.
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": REDIS_URL,
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
-            "SOCKET_CONNECT_TIMEOUT": 2,
-            "SOCKET_TIMEOUT": 2,
-        },
-    }
-}
+CACHES = {"default": {**CACHES["default"], "LOCATION": env("REDIS_URL")}}
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = True

@@ -17,6 +17,8 @@ from django.core.cache import cache
 from PIL import Image, ImageOps
 
 from catalog.services.cache import cache_lock, read_public_cache
+from catalog.services.media import effective_media_kind
+from catalog.services.observations import Observation
 
 THUMBNAIL_SCHEMA_VERSION = 4
 THUMBNAIL_SIZE = (640, 360)
@@ -112,18 +114,39 @@ def delete_thumbnail(stream_id: object) -> None:
     cache.delete_many([_cache_key(stream_id), _timestamp_key(stream_id)])
 
 
-def thumbnail_needs_refresh(stream_id: object) -> bool:
+def thumbnail_generated_at(stream_id: object) -> datetime | None:
+    """When the stream's thumbnail was captured, without loading the picture."""
     timestamp = cache.get(_timestamp_key(stream_id))
     if not isinstance(timestamp, str):
-        return True
+        return None
     try:
         generated_at = datetime.fromisoformat(timestamp)
-        if generated_at.tzinfo is None:
-            generated_at = generated_at.replace(tzinfo=UTC)
     except ValueError:
+        return None
+    return generated_at if generated_at.tzinfo is not None else generated_at.replace(tzinfo=UTC)
+
+
+def thumbnail_needs_refresh(stream_id: object) -> bool:
+    generated_at = thumbnail_generated_at(stream_id)
+    if generated_at is None:
         return True
     age = (datetime.now(UTC) - generated_at).total_seconds()
     return age >= settings.STREAM_THUMBNAIL_REFRESH_SECONDS
+
+
+def desired_thumbnail_kind(
+    observation: Observation | None, path_name: str, media_kind: str
+) -> ThumbnailKind:
+    """
+    What a stream's thumbnail shows: a frame of a live video, or else artwork. Without a check of
+    the media server, an audio stream keeps its audio artwork, and the others the fallback.
+    """
+    path = observation.path(path_name) if observation is not None else None
+    if effective_media_kind(media_kind, path) == "audio":
+        return "audio"
+    if path is None:
+        return "fallback"
+    return "frame" if path.available else "offline"
 
 
 def thumbnail_lock(stream_id: object):
